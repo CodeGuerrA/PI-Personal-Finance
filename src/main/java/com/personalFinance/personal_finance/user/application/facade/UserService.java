@@ -12,7 +12,7 @@ import java.util.List;
 public interface UserService {
     void createUser(UserCreateRequestDTO dto);
 
-    void setPermanentPassword(String id, UserSetPasswordRequestDTO userSetPasswordRequestDTO);
+    void setPermanentPassword(Long id, UserSetPasswordRequestDTO userSetPasswordRequestDTO);
 
     void changePassword(String keycloakId, ChangePasswordRequestDTO dto);
 

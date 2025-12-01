@@ -18,7 +18,7 @@ public interface KeycloakFacade {
 
     KeycloakUserResponseDTO createUser(String userName, String email, String firstName, String lastName);
 
-    void setPermanentPassword(String id, UserSetPasswordRequestDTO userSetPasswordRequestDTO);
+    void setPermanentPasswordByLocalId(Long localId, UserSetPasswordRequestDTO dto);
 
     void changePassword(String keycloakId, ChangePasswordRequestDTO dto);
 

@@ -41,7 +41,7 @@ public class UserController {
     }
 
     @PatchMapping("/{id}/password")
-    public ResponseEntity<Void> setPassword(@PathVariable String id, @RequestBody UserSetPasswordRequestDTO userSetPasswordRequestDTO) {
+    public ResponseEntity<Void> setPassword(@PathVariable Long id, @RequestBody UserSetPasswordRequestDTO userSetPasswordRequestDTO) {
         userService.setPermanentPassword(id, userSetPasswordRequestDTO);
         return ResponseEntity.noContent().build();
     }

@@ -16,4 +16,6 @@ public interface UserFindPort {
     Optional<User> findByKeycloakId(@Param("keycloakId") String keycloakId);
 
     Optional<User> findByEmail(@Param("email") String email);
+
+    Optional<String>findKeycloakIdByLocalId(@Param("localId") Long localId);
 }

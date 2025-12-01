@@ -46,9 +46,10 @@ public class KeycloakFacadeImpl implements KeycloakFacade {
     }
 
     @Override
-    public void setPermanentPassword(String id, UserSetPasswordRequestDTO userSetPasswordRequestDTO) {
-        passwordManager.setPermanentPassword(id, userSetPasswordRequestDTO);
+    public void setPermanentPasswordByLocalId(Long localId, UserSetPasswordRequestDTO dto) {
+        passwordManager.setPermanentPasswordByLocalId(localId, dto);
     }
+
 
     @Override
     public void changePassword(String keycloakId, ChangePasswordRequestDTO dto) {

@@ -2,6 +2,9 @@ package com.personalFinance.personal_finance.user.infrastructure.external.keyclo
 
 import com.personalFinance.personal_finance.user.api.dto.request.ChangePasswordRequestDTO;
 import com.personalFinance.personal_finance.user.api.dto.request.UserSetPasswordRequestDTO;
+import com.personalFinance.personal_finance.user.domain.entity.User;
+import com.personalFinance.personal_finance.user.domain.exception.UserNotFoundException;
+import com.personalFinance.personal_finance.user.domain.port.UserFindPort;
 import com.personalFinance.personal_finance.user.infrastructure.external.keycloak.config.KeycloakPropertiesClient;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -21,11 +24,18 @@ import org.springframework.stereotype.Service;
 public class KeycloakPasswordManager {
     private final Keycloak keycloakAdminClient;
     private final KeycloakPropertiesClient keycloakPropertiesClient;
+    private final UserFindPort userFindPort;
 
     /**
      * Define senha permanente para o usuário.
      * A senha não é marcada como temporária, permitindo login imediato.
      */
+    public void setPermanentPasswordByLocalId(Long localId, UserSetPasswordRequestDTO dto) {
+        String keycloakId = userFindPort.findKeycloakIdByLocalId(localId)
+                .orElseThrow(() -> new UserNotFoundException(localId.toString()));
+        setPermanentPassword(keycloakId, dto);
+    }
+
     public void setPermanentPassword(String keycloakId, UserSetPasswordRequestDTO userSetPasswordRequestDTO) {
         log.info("Definindo senha permanente para o usuário com ID: {}", keycloakId);
 

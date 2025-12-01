@@ -20,6 +20,8 @@ public interface UserRepository extends JpaRepository<User, Long> {
     @Query("SELECT u FROM User u WHERE u.keycloakId = :keycloakId")
     Optional<User> findByKeycloakId(@Param("keycloakId") String keycloakId);
 
+    @Query("SELECT u.keycloakId FROM User u WHERE u.id = :localId")
+    Optional<String> findKeycloakIdByLocalId(@Param("localId") Long localId);
 
     @Query("SELECT u FROM User u WHERE u.email = :email")
     Optional<User> findByEmail(@Param("email") String email);

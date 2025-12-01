@@ -30,7 +30,7 @@ public class UserServiceFacade implements UserService {
     }
 
     @Override
-    public void setPermanentPassword(String id, UserSetPasswordRequestDTO userSetPasswordRequestDTO) {
+    public void setPermanentPassword(Long id, UserSetPasswordRequestDTO userSetPasswordRequestDTO) {
         userPasswordManager.setPermanentPassword(id, userSetPasswordRequestDTO);
     }
 

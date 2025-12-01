@@ -8,6 +8,11 @@ import java.time.format.DateTimeFormatter;
 
 @Component
 public class PasswordChangedEmailStrategy implements UserNotificationStrategy<PasswordChangedEmailDTO> {
+
+    // Define o formato da data e hora
+    private static final DateTimeFormatter DATE_TIME_FORMATTER =
+            DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss");
+
     @Override
     public String getSubject() {
         return "Sua senha foi alterada - Personal Finance";
@@ -15,69 +20,84 @@ public class PasswordChangedEmailStrategy implements UserNotificationStrategy<Pa
 
     @Override
     public String buildContent(PasswordChangedEmailDTO dto) {
-        String formattedDate = LocalDateTime.now()
-                .format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss"));
+        // Formata a data e hora atual
+        String formattedDate = LocalDateTime.now().format(DATE_TIME_FORMATTER);
 
         return """
-                <!DOCTYPE html>
-                <html>
-                <head>
-                    <meta charset="UTF-8">
-                    <style>
-                        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-                        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-                        .header { background-color: #2196F3; color: white; padding: 30px; text-align: center; border-radius: 5px 5px 0 0; }
-                        .content { background-color: #f9f9f9; padding: 30px; border-radius: 0 0 5px 5px; }
-                        .success-box { background-color: #e3f2fd; border-left: 4px solid #2196F3; padding: 15px; margin: 20px 0; border-radius: 3px; }
-                        .warning-box { background-color: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin: 20px 0; border-radius: 3px; }
-                        .footer { margin-top: 30px; text-align: center; font-size: 12px; color: #777; }
-                    </style>
-                </head>
-                <body>
-                    <div class="container">
-                        <div class="header">
-                            <h1>🔐 Senha Alterada com Sucesso</h1>
-                        </div>
-                        <div class="content">
-                            <p>Olá, <strong>%s</strong>!</p>
+            <!DOCTYPE html>
+            <html lang="pt-BR">
+            <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <title>Confirmação de Alteração de Senha</title>
+                <style>
+                    /* Resets e Mobile Adaptation */
+                    body, table, td, a { -webkit-text-size-adjust: 100%%; -ms-text-size-adjust: 100%%; }
+                    table, td { mso-table-lspace: 0pt; mso-table-rspace: 0pt; }
+                    table { border-collapse: collapse !important; }
+                    body { height: 100%% !important; margin: 0 !important; padding: 0 !important; width: 100%% !important; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+                    
+                    /* Media Query para Responsividade */
+                    @media screen and (max-width: 600px) {
+                        .email-container { width: 100%% !important; }
+                        .padding-box { padding: 20px !important; }
+                    }
+                </style>
+            </head>
+            <body style="margin: 0; padding: 0; background-color: #f4f4f4;">
+                
+                <table border="0" cellpadding="0" cellspacing="0" width="100%%">
+                    <tr>
+                        <td align="center" style="padding: 20px 0;">
+                            
+                            <table class="email-container" border="0" cellpadding="0" cellspacing="0" width="600" style="background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                                
+                                <tr>
+                                    <td align="center" style="background-color: #2196F3; padding: 30px; color: #ffffff;">
+                                        <h1 style="margin: 0; font-size: 28px; font-weight: bold;">🔐 Senha Alterada!</h1>
+                                    </td>
+                                </tr>
 
-                            <div class="success-box">
-                                <p style="margin: 0;"><strong>✅ Sua senha foi alterada com sucesso!</strong></p>
-                                <p style="margin: 10px 0 0 0;">Data e hora: <strong>%s</strong></p>
-                            </div>
+                                <tr>
+                                    <td class="padding-box" style="padding: 40px; color: #333333; font-size: 16px; line-height: 1.6;">
+                                        <p style="margin-top: 0;">Olá, <strong>%s</strong>!</p>
 
-                            <p>Esta é uma confirmação de que a senha da sua conta no <strong>Personal Finance</strong> foi alterada recentemente.</p>
+                                        <div style="background-color: #e3f2fd; border-left: 4px solid #2196F3; padding: 15px; margin: 25px 0; border-radius: 4px;">
+                                            <p style="margin: 0;"><strong>✅ Confirmação: Sua senha foi alterada com sucesso.</strong></p>
+                                            <p style="margin: 10px 0 0 0; font-size: 14px;">Data e hora da alteração: <strong style="color: #0d47a1;">%s</strong></p>
+                                        </div>
 
-                            <div class="warning-box">
-                                <p style="margin: 0;"><strong>⚠️ Você não reconhece esta alteração?</strong></p>
-                                <p style="margin: 10px 0 0 0;">Se você não solicitou esta alteração de senha, recomendamos que você:</p>
-                                <ul style="margin: 10px 0 0 0; padding-left: 20px;">
-                                    <li>Acesse imediatamente a recuperação de senha</li>
-                                    <li>Entre em contato com nosso suporte</li>
-                                    <li>Verifique se há acessos não autorizados</li>
-                                </ul>
-                            </div>
+                                        <p>Esta é uma notificação importante sobre a segurança da sua conta no <strong>Personal Finance</strong>.</p>
 
-                            <p>Se foi você quem alterou a senha, pode ignorar este aviso. Sua conta está segura.</p>
+                                        <div style="background-color: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin: 20px 0; border-radius: 4px; font-size: 15px;">
+                                            <p style="margin: 0;"><strong>⚠️ Você não solicitou esta alteração?</strong></p>
+                                            <p style="margin: 10px 0 0 0;">Se você não realizou esta alteração de senha, **aja imediatamente**:</p>
+                                            <ul style="margin: 10px 0 0 0; padding-left: 20px;">
+                                                <li style="margin-bottom: 5px;">Acesse a tela de **recuperação de senha** para redefini-la novamente.</li>
+                                                <li>Entre em contato com nosso **suporte** imediatamente.</li>
+                                            </ul>
+                                        </div>
 
-                            <p><strong>💡 Dicas de segurança:</strong></p>
-                            <ul>
-                                <li>Nunca compartilhe sua senha com ninguém</li>
-                                <li>Use senhas únicas para cada serviço</li>
-                                <li>Altere sua senha periodicamente</li>
-                                <li>Mantenha seu email de recuperação atualizado</li>
-                            </ul>
+                                        <p>Se foi você quem alterou, pode ficar tranquilo(a). Sua conta está segura!</p>
 
-                            <p>Obrigado por usar o Personal Finance!</p>
-                            <p><strong>Equipe Personal Finance</strong></p>
-                        </div>
-                        <div class="footer">
-                            <p>Este é um email automático. Por favor, não responda.</p>
-                            <p>&copy; 2025 Personal Finance. Todos os direitos reservados.</p>
-                        </div>
-                    </div>
-                </body>
-                </html>
-                """.formatted(dto.firstName(), formattedDate);
+                                        <p style="margin-top: 30px; font-size: 14px; color: #666;">Obrigado por priorizar sua segurança.</p>
+                                        <p>Atenciosamente,<br><strong>Equipe Personal Finance</strong></p>
+                                    </td>
+                                </tr>
+
+                                <tr>
+                                    <td align="center" style="background-color: #f9f9f9; padding: 20px; font-size: 12px; color: #888888; border-top: 1px solid #eeeeee;">
+                                        <p style="margin: 0 0 5px 0;">Este é um email automático de segurança.</p>
+                                        <p style="margin: 0;">&copy; 2025 Personal Finance. Todos os direitos reservados.</p>
+                                    </td>
+                                </tr>
+                            </table>
+                            
+                        </td>
+                    </tr>
+                </table>
+            </body>
+            </html>
+            """.formatted(dto.firstName(), formattedDate);
     }
 }

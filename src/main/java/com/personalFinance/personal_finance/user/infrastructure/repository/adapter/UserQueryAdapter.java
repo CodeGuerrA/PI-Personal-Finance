@@ -32,6 +32,11 @@ public class UserQueryAdapter implements UserFindPort {
 
     @Override
     public Optional<User> findByEmail(String email) {
-        return Optional.empty();
+        return userRepository.findByEmail(email);
+    }
+
+    @Override
+    public Optional<String> findKeycloakIdByLocalId(Long localId) {
+        return userRepository.findKeycloakIdByLocalId(localId);
     }
 }

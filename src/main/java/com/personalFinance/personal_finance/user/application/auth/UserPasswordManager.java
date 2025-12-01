@@ -13,10 +13,10 @@ import org.springframework.stereotype.Service;
 public class UserPasswordManager {
     private final KeycloakFacade keycloakFacade;
 
-    public void setPermanentPassword(String keycloakId, UserSetPasswordRequestDTO userSetPasswordRequestDTO) {
-        log.info("Definindo senha permanente para o usuário com ID: {}", keycloakId);
-        keycloakFacade.setPermanentPassword(keycloakId, userSetPasswordRequestDTO);
-        log.info("Senha permanente definida com sucesso para o usuário com ID: {}", keycloakId);
+    public void setPermanentPassword(Long localId, UserSetPasswordRequestDTO userSetPasswordRequestDTO) {
+        log.info("Definindo senha permanente para o usuário com ID: {}", localId);
+        keycloakFacade.setPermanentPasswordByLocalId(localId, userSetPasswordRequestDTO);
+        log.info("Senha permanente definida com sucesso para o usuário com ID: {}", localId);
     }
 
     public void changePassword(String keycloakId, ChangePasswordRequestDTO dto) {
