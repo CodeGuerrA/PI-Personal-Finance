@@ -238,6 +238,295 @@ curl -X DELETE http://localhost:8082/users/me \
 
 ---
 
+## 🎯 ObjectiveController - `/objectives`
+
+> **Nota**: Todos os endpoints de Objective requerem autenticação (Bearer Token)
+
+### 1️⃣2️⃣ POST `/objectives` - Criar Objetivo Financeiro
+
+**Descrição**: Cria um novo objetivo financeiro ou orçamento para o usuário autenticado.
+
+**Tipos de Objetivo:**
+- `LIMITE_CATEGORIA`: Orçamento máximo para uma categoria (Ex: "Gastar no máximo R$ 500 com alimentação")
+- `META_ECONOMIA_MES`: Quanto quer economizar no mês (Ex: "Economizar R$ 1.000 em dezembro")
+- `META_INVESTIMENTO`: Quanto quer investir no período (Ex: "Investir R$ 500 por mês")
+
+**Swagger (Request Body) - Limite de Categoria:**
+```json
+{
+  "categoriaId": 1,
+  "descricao": "Gastar no máximo com alimentação em dezembro",
+  "valorObjetivo": 500.00,
+  "mesAno": "2024-12",
+  "tipo": "LIMITE_CATEGORIA"
+}
+```
+
+**Swagger (Request Body) - Meta de Economia:**
+```json
+{
+  "descricao": "Economizar R$ 1000 em dezembro",
+  "valorObjetivo": 1000.00,
+  "mesAno": "2024-12",
+  "tipo": "META_ECONOMIA_MES"
+}
+```
+
+**Swagger (Request Body) - Meta de Investimento:**
+```json
+{
+  "descricao": "Investir R$ 500 por mês",
+  "valorObjetivo": 500.00,
+  "mesAno": "2024-12",
+  "tipo": "META_INVESTIMENTO"
+}
+```
+
+**cURL:**
+```bash
+curl -X POST http://localhost:8082/objectives \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer seu_access_token_aqui" \
+  -d '{
+    "categoriaId": 1,
+    "descricao": "Gastar no máximo com alimentação",
+    "valorObjetivo": 500.00,
+    "mesAno": "2024-12",
+    "tipo": "LIMITE_CATEGORIA"
+  }'
+```
+
+**Response (201 Created):**
+```json
+{
+  "id": 1,
+  "categoriaId": 1,
+  "categoriaNome": null,
+  "descricao": "Gastar no máximo com alimentação",
+  "valorObjetivo": 500.00,
+  "valorAtual": 0,
+  "percentualAtingido": 0.00,
+  "saldoRestante": 500.00,
+  "mesAno": "2024-12",
+  "tipo": "LIMITE_CATEGORIA",
+  "ativa": true,
+  "statusAlerta": "NENHUM"
+}
+```
+
+---
+
+### 1️⃣3️⃣ GET `/objectives` - Listar Todos os Objetivos
+
+**Descrição**: Retorna todos os objetivos **ativos** do usuário autenticado.
+
+**Swagger:**
+- Requer autenticação (clique em "Authorize" primeiro)
+
+**cURL:**
+```bash
+curl -X GET http://localhost:8082/objectives \
+  -H "Authorization: Bearer seu_access_token_aqui"
+```
+
+**Response (200 OK):**
+```json
+[
+  {
+    "id": 1,
+    "categoriaId": 1,
+    "categoriaNome": null,
+    "descricao": "Gastar no máximo com alimentação",
+    "valorObjetivo": 500.00,
+    "valorAtual": 0,
+    "percentualAtingido": 0.00,
+    "saldoRestante": 500.00,
+    "mesAno": "2024-12",
+    "tipo": "LIMITE_CATEGORIA",
+    "ativa": true,
+    "statusAlerta": "NENHUM"
+  },
+  {
+    "id": 2,
+    "categoriaId": null,
+    "categoriaNome": null,
+    "descricao": "Economizar R$ 1000 em dezembro",
+    "valorObjetivo": 1000.00,
+    "valorAtual": 850.00,
+    "percentualAtingido": 85.00,
+    "saldoRestante": 150.00,
+    "mesAno": "2024-12",
+    "tipo": "META_ECONOMIA_MES",
+    "ativa": true,
+    "statusAlerta": "AMARELO"
+  }
+]
+```
+
+---
+
+### 1️⃣4️⃣ GET `/objectives/{id}` - Buscar Objetivo por ID
+
+**Descrição**: Retorna um objetivo específico do usuário autenticado.
+
+**Swagger:**
+- Path Variable: `id` = `1`
+- Requer autenticação
+
+**cURL:**
+```bash
+curl -X GET http://localhost:8082/objectives/1 \
+  -H "Authorization: Bearer seu_access_token_aqui"
+```
+
+**Response (200 OK):**
+```json
+{
+  "id": 1,
+  "categoriaId": 1,
+  "categoriaNome": null,
+  "descricao": "Gastar no máximo com alimentação",
+  "valorObjetivo": 500.00,
+  "valorAtual": 0,
+  "percentualAtingido": 0.00,
+  "saldoRestante": 500.00,
+  "mesAno": "2024-12",
+  "tipo": "LIMITE_CATEGORIA",
+  "ativa": true,
+  "statusAlerta": "NENHUM"
+}
+```
+
+---
+
+### 1️⃣5️⃣ GET `/objectives/month/{mesAno}` - Buscar Objetivos por Mês
+
+**Descrição**: Retorna todos os objetivos ativos do usuário para um período específico.
+
+**Swagger:**
+- Path Variable: `mesAno` = `2024-12` (formato: YYYY-MM)
+- Requer autenticação
+
+**cURL:**
+```bash
+curl -X GET http://localhost:8082/objectives/month/2024-12 \
+  -H "Authorization: Bearer seu_access_token_aqui"
+```
+
+**Response (200 OK):**
+```json
+[
+  {
+    "id": 1,
+    "categoriaId": 1,
+    "categoriaNome": null,
+    "descricao": "Gastar no máximo com alimentação em dezembro",
+    "valorObjetivo": 500.00,
+    "valorAtual": 520.00,
+    "percentualAtingido": 104.00,
+    "saldoRestante": -20.00,
+    "mesAno": "2024-12",
+    "tipo": "LIMITE_CATEGORIA",
+    "ativa": true,
+    "statusAlerta": "VERMELHO"
+  }
+]
+```
+
+---
+
+### 1️⃣6️⃣ PATCH `/objectives/{id}/value` - Atualizar Valor do Objetivo
+
+**Descrição**: Atualiza o valor objetivo (meta) de um objetivo existente.
+
+**Swagger:**
+- Path Variable: `id` = `1`
+- Query Parameter: `novoValor` = `600.00`
+- Requer autenticação
+
+**cURL:**
+```bash
+curl -X PATCH "http://localhost:8082/objectives/1/value?novoValor=600" \
+  -H "Authorization: Bearer seu_access_token_aqui"
+```
+
+**Response (204 No Content)**
+
+---
+
+### 1️⃣7️⃣ DELETE `/objectives/{id}` - Desativar Objetivo
+
+**Descrição**: Desativa um objetivo (soft delete - não remove do banco, apenas marca como inativo).
+
+**Swagger:**
+- Path Variable: `id` = `1`
+- Requer autenticação
+
+**cURL:**
+```bash
+curl -X DELETE http://localhost:8082/objectives/1 \
+  -H "Authorization: Bearer seu_access_token_aqui"
+```
+
+**Response (204 No Content)**
+
+---
+
+## 🚨 Sistema de Alertas de Objetivos
+
+### Status de Alerta
+
+| Status | Descrição | Quando Ocorre |
+|--------|-----------|---------------|
+| **NENHUM** | Sem alerta | percentualAtingido < 80% |
+| **AMARELO** | Alerta de atenção | 80% ≤ percentualAtingido < 100% |
+| **VERMELHO** | Alerta crítico (limite ultrapassado) | percentualAtingido ≥ 100% (apenas para LIMITE_CATEGORIA) |
+| **CUMPRIDA** | Meta cumprida com sucesso | percentualAtingido ≥ 100% (apenas para META_ECONOMIA_MES e META_INVESTIMENTO) |
+
+### Cálculos Automáticos
+
+- **valorAtual**: Calculado automaticamente com base nas transações do período
+- **percentualAtingido**: `(valorAtual / valorObjetivo) × 100`
+- **saldoRestante**: `valorObjetivo - valorAtual` (negativo se ultrapassou)
+
+### Exemplos de Alertas
+
+**Exemplo 1: Limite de Categoria - Alerta AMARELO (80%)**
+```json
+{
+  "descricao": "Gastar no máximo R$ 500 com alimentação",
+  "valorObjetivo": 500.00,
+  "valorAtual": 400.00,
+  "percentualAtingido": 80.00,
+  "statusAlerta": "AMARELO"
+}
+```
+
+**Exemplo 2: Limite de Categoria - Alerta VERMELHO (ultrapassou)**
+```json
+{
+  "descricao": "Gastar no máximo R$ 500 com alimentação",
+  "valorObjetivo": 500.00,
+  "valorAtual": 520.00,
+  "percentualAtingido": 104.00,
+  "saldoRestante": -20.00,
+  "statusAlerta": "VERMELHO"
+}
+```
+
+**Exemplo 3: Meta de Economia - CUMPRIDA**
+```json
+{
+  "descricao": "Economizar R$ 1000 em dezembro",
+  "valorObjetivo": 1000.00,
+  "valorAtual": 1050.00,
+  "percentualAtingido": 105.00,
+  "statusAlerta": "CUMPRIDA"
+}
+```
+
+---
+
 ## 📝 Regras de Validação
 
 ### Senha
@@ -353,6 +642,69 @@ POST /auth/reset-password
 
 ---
 
+## 🔄 Fluxo de Teste Sugerido - Objectives
+
+### 1. Autenticar
+```bash
+POST /auth/login
+{
+  "username": "carlos.garcia",
+  "password": "2240"
+}
+# Salvar o access_token
+```
+
+### 2. Criar Limite de Categoria
+```bash
+POST /objectives
+{
+  "categoriaId": 1,
+  "descricao": "Gastar no máximo R$ 500 com alimentação",
+  "valorObjetivo": 500.00,
+  "mesAno": "2024-12",
+  "tipo": "LIMITE_CATEGORIA"
+}
+(Com Bearer Token)
+```
+
+### 3. Criar Meta de Economia
+```bash
+POST /objectives
+{
+  "descricao": "Economizar R$ 1000 em dezembro",
+  "valorObjetivo": 1000.00,
+  "mesAno": "2024-12",
+  "tipo": "META_ECONOMIA_MES"
+}
+(Com Bearer Token)
+```
+
+### 4. Listar Todos os Objetivos
+```bash
+GET /objectives
+(Com Bearer Token)
+```
+
+### 5. Buscar Objetivos do Mês
+```bash
+GET /objectives/month/2024-12
+(Com Bearer Token)
+```
+
+### 6. Atualizar Valor do Objetivo
+```bash
+PATCH /objectives/1/value?novoValor=600
+(Com Bearer Token)
+```
+
+### 7. Desativar Objetivo
+```bash
+DELETE /objectives/1
+(Com Bearer Token)
+```
+
+---
+
 ## 📊 Resumo dos Endpoints
 
 | Método | Endpoint | Autenticação | Descrição |
@@ -368,6 +720,12 @@ POST /auth/reset-password
 | PUT | `/users/me` | ✅ | Atualizar perfil próprio |
 | PATCH | `/users/me/password` | ✅ | Mudar senha |
 | DELETE | `/users/me` | ✅ | Deletar conta própria |
+| POST | `/objectives` | ✅ | Criar objetivo financeiro |
+| GET | `/objectives` | ✅ | Listar todos os objetivos ativos |
+| GET | `/objectives/{id}` | ✅ | Buscar objetivo por ID |
+| GET | `/objectives/month/{mesAno}` | ✅ | Buscar objetivos por mês |
+| PATCH | `/objectives/{id}/value` | ✅ | Atualizar valor do objetivo |
+| DELETE | `/objectives/{id}` | ✅ | Desativar objetivo |
 
 ---
 
