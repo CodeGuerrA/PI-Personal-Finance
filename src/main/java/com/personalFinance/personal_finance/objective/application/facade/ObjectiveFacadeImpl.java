@@ -3,6 +3,7 @@ package com.personalFinance.personal_finance.objective.application.facade;
 import com.personalFinance.personal_finance.objective.api.dto.request.ObjectiveCreateRequestDTO;
 import com.personalFinance.personal_finance.objective.api.dto.response.ObjectiveResponseDTO;
 import com.personalFinance.personal_finance.objective.application.service.*;
+import com.personalFinance.personal_finance.objective.domain.entity.ObjectiveType;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -58,5 +59,43 @@ public class ObjectiveFacadeImpl implements ObjectiveFacade {
     public void deactivateObjective(String keycloakId, Long objectiveId) {
         log.info("Facade: Desativando objetivo ID: {}", objectiveId);
         objectiveDeleter.deactivate(keycloakId, objectiveId);
+    }
+
+    // ============ NOVOS MÉTODOS DE FILTRO E ESTATÍSTICAS ============
+
+    @Override
+    public List<ObjectiveResponseDTO> findObjectivesCloseToCompletion(String keycloakId) {
+        log.info("Facade: Buscando objectives próximos de cumprir do usuário: {}", keycloakId);
+        return objectiveFinder.findObjectivesCloseToCompletion(keycloakId);
+    }
+
+    @Override
+    public List<ObjectiveResponseDTO> findOverLimitObjectives(String keycloakId) {
+        log.info("Facade: Buscando objectives com limite ultrapassado do usuário: {}", keycloakId);
+        return objectiveFinder.findOverLimitObjectives(keycloakId);
+    }
+
+    @Override
+    public List<ObjectiveResponseDTO> findByUserAndTipo(String keycloakId, ObjectiveType tipo) {
+        log.info("Facade: Buscando objectives tipo={} do usuário: {}", tipo, keycloakId);
+        return objectiveFinder.findByUserAndTipo(keycloakId, tipo);
+    }
+
+    @Override
+    public Long countActiveObjectives(String keycloakId) {
+        log.info("Facade: Contando objectives ativos do usuário: {}", keycloakId);
+        return objectiveFinder.countActiveObjectives(keycloakId);
+    }
+
+    @Override
+    public Long countCompletedGoals(String keycloakId) {
+        log.info("Facade: Contando objectives cumpridos do usuário: {}", keycloakId);
+        return objectiveFinder.countCompletedGoals(keycloakId);
+    }
+
+    @Override
+    public List<Object[]> findObjectiveSummaryByTipo(String keycloakId) {
+        log.info("Facade: Buscando resumo de objectives por tipo do usuário: {}", keycloakId);
+        return objectiveFinder.findObjectiveSummaryByTipo(keycloakId);
     }
 }

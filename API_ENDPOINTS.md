@@ -726,6 +726,13 @@ DELETE /objectives/1
 | GET | `/objectives/month/{mesAno}` | ✅ | Buscar objetivos por mês |
 | PATCH | `/objectives/{id}/value` | ✅ | Atualizar valor do objetivo |
 | DELETE | `/objectives/{id}` | ✅ | Desativar objetivo |
+| POST | `/investments` | ✅ | Criar investimento |
+| GET | `/investments` | ✅ | Listar todos os investimentos |
+| GET | `/investments/{id}` | ✅ | Buscar investimento por ID |
+| GET | `/investments/ativo?status={bool}` | ✅ | Buscar investimentos por status |
+| GET | `/investments/tipo/{tipo}` | ✅ | Buscar investimentos por tipo |
+| PUT | `/investments/{id}` | ✅ | Atualizar investimento |
+| DELETE | `/investments/{id}` | ✅ | Deletar investimento |
 
 ---
 
@@ -736,3 +743,430 @@ Use estes CPFs válidos nos seus testes:
 - `111.444.777-35`
 - `123.456.789-09`
 - `000.000.001-91`
+
+---
+
+## 💰 InvestmentController - `/investments`
+
+> **Nota**: Todos os endpoints de Investment requerem autenticação (Bearer Token)
+> **Segurança**: Cada usuário só pode ver e gerenciar seus próprios investimentos
+
+### Tipos de Investimento Disponíveis
+
+| Tipo | Descrição |
+|------|-----------|
+| `CRIPTO` | Criptomoedas |
+| `ACAO` | Ações |
+| `FUNDO` | Fundos de Investimento |
+| `RENDA_FIXA` | Renda Fixa |
+| `TESOURO_DIRETO` | Tesouro Direto |
+| `CDB` | CDB |
+
+---
+
+### 1️⃣8️⃣ POST `/investments` - Criar Investimento
+
+**Descrição**: Cria um novo investimento para o usuário autenticado.
+
+**Swagger (Request Body) - Ação:**
+```json
+{
+  "tipoInvestimento": "ACAO",
+  "nomeAtivo": "Petrobras",
+  "simbolo": "PETR4",
+  "quantidade": 100,
+  "valorCompra": 35.50,
+  "valorTotalInvestido": 3550.00,
+  "dataCompra": "2025-01-15",
+  "corretora": "Clear",
+  "observacoes": "Primeira compra de ações"
+}
+```
+
+**Swagger (Request Body) - Criptomoeda:**
+```json
+{
+  "tipoInvestimento": "CRIPTO",
+  "nomeAtivo": "Bitcoin",
+  "simbolo": "BTC",
+  "quantidade": 0.5,
+  "valorCompra": 350000.00,
+  "valorTotalInvestido": 175000.00,
+  "dataCompra": "2025-02-01",
+  "corretora": "Binance",
+  "observacoes": "Investimento em Bitcoin"
+}
+```
+
+**Swagger (Request Body) - Tesouro Direto:**
+```json
+{
+  "tipoInvestimento": "TESOURO_DIRETO",
+  "nomeAtivo": "Tesouro IPCA+ 2035",
+  "simbolo": "NTNB35",
+  "quantidade": 1,
+  "valorCompra": 3500.00,
+  "valorTotalInvestido": 3500.00,
+  "dataCompra": "2025-01-10"
+}
+```
+
+**cURL:**
+```bash
+curl -X POST http://localhost:8082/investments \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer seu_access_token_aqui" \
+  -d '{
+    "tipoInvestimento": "ACAO",
+    "nomeAtivo": "Petrobras",
+    "simbolo": "PETR4",
+    "quantidade": 100,
+    "valorCompra": 35.50,
+    "valorTotalInvestido": 3550.00,
+    "dataCompra": "2025-01-15",
+    "corretora": "Clear",
+    "observacoes": "Primeira compra de ações"
+  }'
+```
+
+**Response (201 Created):**
+```json
+{
+  "id": 1,
+  "usuarioId": 15,
+  "tipoInvestimento": "ACAO",
+  "nomeAtivo": "Petrobras",
+  "simbolo": "PETR4",
+  "quantidade": 100.00000000,
+  "valorCompra": 35.50,
+  "valorTotalInvestido": 3550.00,
+  "dataCompra": "2025-01-15",
+  "corretora": "Clear",
+  "observacoes": "Primeira compra de ações",
+  "ativo": true,
+  "cotacaoAtual": null,
+  "valorAtual": 0,
+  "lucro": -3550.00,
+  "rentabilidade": -100.00
+}
+```
+
+---
+
+### 1️⃣9️⃣ GET `/investments` - Listar Todos os Investimentos
+
+**Descrição**: Retorna todos os investimentos do usuário autenticado.
+
+**Swagger:**
+- Requer autenticação (clique em "Authorize" primeiro)
+
+**cURL:**
+```bash
+curl -X GET http://localhost:8082/investments \
+  -H "Authorization: Bearer seu_access_token_aqui"
+```
+
+**Response (200 OK):**
+```json
+[
+  {
+    "id": 1,
+    "usuarioId": 15,
+    "tipoInvestimento": "ACAO",
+    "nomeAtivo": "Petrobras",
+    "simbolo": "PETR4",
+    "quantidade": 100.00000000,
+    "valorCompra": 35.50,
+    "valorTotalInvestido": 3550.00,
+    "dataCompra": "2025-01-15",
+    "corretora": "Clear",
+    "observacoes": "Primeira compra de ações",
+    "ativo": true,
+    "cotacaoAtual": null,
+    "valorAtual": 0,
+    "lucro": -3550.00,
+    "rentabilidade": -100.00
+  }
+]
+```
+
+---
+
+### 2️⃣0️⃣ GET `/investments/{id}` - Buscar Investimento por ID
+
+**Descrição**: Retorna um investimento específico do usuário autenticado.
+
+**Segurança**: Retorna erro 403/404 se tentar acessar investimento de outro usuário.
+
+**Swagger:**
+- Path Variable: `id` = `1`
+- Requer autenticação
+
+**cURL:**
+```bash
+curl -X GET http://localhost:8082/investments/1 \
+  -H "Authorization: Bearer seu_access_token_aqui"
+```
+
+**Response (200 OK):**
+```json
+{
+  "id": 1,
+  "usuarioId": 15,
+  "tipoInvestimento": "ACAO",
+  "nomeAtivo": "Petrobras",
+  "simbolo": "PETR4",
+  "quantidade": 100.00000000,
+  "valorCompra": 35.50,
+  "valorTotalInvestido": 3550.00,
+  "dataCompra": "2025-01-15",
+  "corretora": "Clear",
+  "observacoes": "Primeira compra de ações",
+  "ativo": true,
+  "cotacaoAtual": null,
+  "valorAtual": 0,
+  "lucro": -3550.00,
+  "rentabilidade": -100.00
+}
+```
+
+---
+
+### 2️⃣1️⃣ GET `/investments/ativo?status={true|false}` - Buscar por Status
+
+**Descrição**: Retorna investimentos ativos ou inativos do usuário autenticado.
+
+**Swagger:**
+- Query Parameter: `status` = `true` ou `false`
+- Requer autenticação
+
+**cURL:**
+```bash
+# Buscar investimentos ativos
+curl -X GET "http://localhost:8082/investments/ativo?status=true" \
+  -H "Authorization: Bearer seu_access_token_aqui"
+
+# Buscar investimentos inativos
+curl -X GET "http://localhost:8082/investments/ativo?status=false" \
+  -H "Authorization: Bearer seu_access_token_aqui"
+```
+
+**Response (200 OK):** Lista de investimentos filtrados
+
+---
+
+### 2️⃣2️⃣ GET `/investments/tipo/{tipo}` - Buscar por Tipo
+
+**Descrição**: Retorna investimentos de um tipo específico do usuário autenticado.
+
+**Swagger:**
+- Path Variable: `tipo` = `ACAO` | `CRIPTO` | `FUNDO` | `RENDA_FIXA` | `TESOURO_DIRETO` | `CDB`
+- Requer autenticação
+
+**cURL:**
+```bash
+# Buscar ações
+curl -X GET http://localhost:8082/investments/tipo/ACAO \
+  -H "Authorization: Bearer seu_access_token_aqui"
+
+# Buscar criptomoedas
+curl -X GET http://localhost:8082/investments/tipo/CRIPTO \
+  -H "Authorization: Bearer seu_access_token_aqui"
+```
+
+**Response (200 OK):** Lista de investimentos do tipo especificado
+
+---
+
+### 2️⃣3️⃣ PUT `/investments/{id}` - Atualizar Investimento
+
+**Descrição**: Atualiza um investimento existente do usuário autenticado.
+
+**Segurança**: Retorna erro 403/404 se tentar atualizar investimento de outro usuário.
+
+**Swagger:**
+- Path Variable: `id` = `1`
+- Request Body:
+
+```json
+{
+  "quantidade": 150,
+  "valorCompra": 36.00,
+  "valorTotalInvestido": 5400.00,
+  "observacoes": "Compra adicional - 50 ações"
+}
+```
+
+**cURL:**
+```bash
+curl -X PUT http://localhost:8082/investments/1 \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer seu_access_token_aqui" \
+  -d '{
+    "quantidade": 150,
+    "valorCompra": 36.00,
+    "valorTotalInvestido": 5400.00,
+    "observacoes": "Compra adicional - 50 ações"
+  }'
+```
+
+**Response (200 OK):** Investimento atualizado
+
+---
+
+### 2️⃣4️⃣ DELETE `/investments/{id}` - Deletar Investimento
+
+**Descrição**: Deleta um investimento do usuário autenticado.
+
+**Segurança**: Retorna erro 403/404 se tentar deletar investimento de outro usuário.
+
+**Swagger:**
+- Path Variable: `id` = `1`
+- Requer autenticação
+
+**cURL:**
+```bash
+curl -X DELETE http://localhost:8082/investments/1 \
+  -H "Authorization: Bearer seu_access_token_aqui"
+```
+
+**Response (204 No Content)**
+
+---
+
+## 🔐 Segurança dos Investimentos
+
+### Validação de Propriedade
+
+Todos os endpoints de investimentos implementam validação rigorosa de propriedade:
+
+1. **Busca por ID**: Valida que o investimento pertence ao usuário antes de retornar
+2. **Listagem**: Retorna apenas investimentos do usuário autenticado
+3. **Atualização**: Só permite atualizar investimentos próprios
+4. **Exclusão**: Só permite deletar investimentos próprios
+
+### Exemplos de Comportamento de Segurança
+
+**Cenário**: Usuário A (ID 15) tenta acessar investimento do Usuário B (ID 14)
+
+```bash
+# Usuário A tenta acessar investimento ID 5 do Usuário B
+curl -X GET http://localhost:8082/investments/5 \
+  -H "Authorization: Bearer token_do_usuario_A"
+
+# Resposta: 403 Forbidden ou 404 Not Found
+{
+  "status": 403,
+  "error": "Acesso negado",
+  "message": "Você não tem permissão para acessar este investimento"
+}
+```
+
+---
+
+## 📊 Campos Calculados
+
+Os investimentos retornam campos calculados automaticamente:
+
+| Campo | Descrição | Fórmula |
+|-------|-----------|---------|
+| `valorAtual` | Valor atual do investimento | `quantidade × cotacaoAtual` |
+| `lucro` | Lucro ou prejuízo | `valorAtual - valorTotalInvestido` |
+| `rentabilidade` | Rentabilidade percentual | `(lucro / valorTotalInvestido) × 100` |
+
+**Nota**: Se `cotacaoAtual` for `null`, os cálculos retornam valores zerados ou negativos.
+
+---
+
+## 🔄 Fluxo de Teste Sugerido - Investments
+
+### 1. Autenticar
+```bash
+POST /auth/login
+{
+  "username": "carlos.garcia",
+  "password": "2240"
+}
+# Salvar o access_token
+```
+
+### 2. Criar Investimento em Ações
+```bash
+POST /investments
+{
+  "tipoInvestimento": "ACAO",
+  "nomeAtivo": "Petrobras",
+  "simbolo": "PETR4",
+  "quantidade": 100,
+  "valorCompra": 35.50,
+  "valorTotalInvestido": 3550.00,
+  "dataCompra": "2025-01-15",
+  "corretora": "Clear"
+}
+(Com Bearer Token)
+```
+
+### 3. Criar Investimento em Cripto
+```bash
+POST /investments
+{
+  "tipoInvestimento": "CRIPTO",
+  "nomeAtivo": "Bitcoin",
+  "simbolo": "BTC",
+  "quantidade": 0.5,
+  "valorCompra": 350000.00,
+  "valorTotalInvestido": 175000.00,
+  "dataCompra": "2025-02-01",
+  "corretora": "Binance"
+}
+(Com Bearer Token)
+```
+
+### 4. Listar Todos os Investimentos
+```bash
+GET /investments
+(Com Bearer Token)
+```
+
+### 5. Filtrar por Tipo
+```bash
+GET /investments/tipo/ACAO
+(Com Bearer Token)
+```
+
+### 6. Atualizar Investimento
+```bash
+PUT /investments/1
+{
+  "quantidade": 150,
+  "valorCompra": 36.00,
+  "valorTotalInvestido": 5400.00
+}
+(Com Bearer Token)
+```
+
+### 7. Deletar Investimento
+```bash
+DELETE /investments/5
+(Com Bearer Token)
+```
+
+---
+
+## 📝 Validações de Investment
+
+### Campos Obrigatórios
+- `tipoInvestimento`: Tipo do investimento (enum)
+- `nomeAtivo`: Nome do ativo (2-200 caracteres)
+- `simbolo`: Símbolo do ativo (1-20 caracteres)
+- `quantidade`: Quantidade investida (> 0.00000001)
+- `valorCompra`: Valor de compra unitário (≥ 0)
+- `valorTotalInvestido`: Valor total investido (≥ 0)
+- `dataCompra`: Data da compra (não pode ser futura)
+
+### Campos Opcionais
+- `corretora`: Nome da corretora (máx 100 caracteres)
+- `observacoes`: Observações gerais (máx 1000 caracteres)
+
+---
+

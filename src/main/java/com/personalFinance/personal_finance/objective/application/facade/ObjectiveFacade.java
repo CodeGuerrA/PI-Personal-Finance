@@ -2,6 +2,7 @@ package com.personalFinance.personal_finance.objective.application.facade;
 
 import com.personalFinance.personal_finance.objective.api.dto.request.ObjectiveCreateRequestDTO;
 import com.personalFinance.personal_finance.objective.api.dto.response.ObjectiveResponseDTO;
+import com.personalFinance.personal_finance.objective.domain.entity.ObjectiveType;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -23,4 +24,36 @@ public interface ObjectiveFacade {
     void updateObjectiveValue(String keycloakId, Long objectiveId, BigDecimal novoValor);
 
     void deactivateObjective(String keycloakId, Long objectiveId);
+
+    // ============ NOVOS MÉTODOS DE FILTRO E ESTATÍSTICAS ============
+
+    /**
+     * FILTRO: Busca objectives próximos de serem cumpridos (>= 80%).
+     */
+    List<ObjectiveResponseDTO> findObjectivesCloseToCompletion(String keycloakId);
+
+    /**
+     * FILTRO: Busca objectives que ultrapassaram o limite.
+     */
+    List<ObjectiveResponseDTO> findOverLimitObjectives(String keycloakId);
+
+    /**
+     * FILTRO: Busca objectives por tipo.
+     */
+    List<ObjectiveResponseDTO> findByUserAndTipo(String keycloakId, ObjectiveType tipo);
+
+    /**
+     * ESTATÍSTICA: Conta total de objectives ativos.
+     */
+    Long countActiveObjectives(String keycloakId);
+
+    /**
+     * ESTATÍSTICA: Conta objectives cumpridos.
+     */
+    Long countCompletedGoals(String keycloakId);
+
+    /**
+     * ESTATÍSTICA: Retorna resumo de objectives por tipo.
+     */
+    List<Object[]> findObjectiveSummaryByTipo(String keycloakId);
 }
