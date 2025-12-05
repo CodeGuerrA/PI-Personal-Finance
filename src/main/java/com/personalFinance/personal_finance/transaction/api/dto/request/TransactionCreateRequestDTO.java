@@ -39,4 +39,7 @@ public class TransactionCreateRequestDTO {
     @NotNull(message = "A data da transação é obrigatória")
     @PastOrPresent(message = "A data não pode ser futura")
     private LocalDate data;
+
+    @Size(max = 1000, message = "As observações não podem ter mais de 1000 caracteres")
+    private String observacoes;
 }

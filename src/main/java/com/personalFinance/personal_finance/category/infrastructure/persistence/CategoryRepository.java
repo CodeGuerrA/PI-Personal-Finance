@@ -47,6 +47,12 @@ public interface CategoryRepository extends JpaRepository<Category, Long> {
     List<Category> findByUsuarioIdAndNomeContaining(@Param("usuarioId") Long usuarioId, @Param("nome") String nome);
 
     /**
+     * Busca todas as categorias disponíveis para um usuário por nome (padrão + próprias).
+     */
+    @Query("SELECT c FROM Category c WHERE (c.padrao = true OR c.usuario.id = :usuarioId) AND LOWER(c.nome) LIKE LOWER(CONCAT('%', :nome, '%')) AND c.ativa = true ORDER BY c.padrao DESC, c.nome ASC")
+    List<Category> findAllAvailableForUserByNomeContaining(@Param("usuarioId") Long usuarioId, @Param("nome") String nome);
+
+    /**
      * Busca todas as categorias disponíveis para um usuário (padrão + próprias).
      */
     @Query("SELECT c FROM Category c WHERE (c.padrao = true OR c.usuario.id = :usuarioId) AND c.ativa = true ORDER BY c.padrao DESC, c.nome ASC")

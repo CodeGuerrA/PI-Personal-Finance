@@ -28,9 +28,13 @@ public class TransactionMapper {
                 .valor(tx.getValor())
                 .tipo(tx.getTipo())
                 .metodoPagamento(tx.getMetodoPagamento())
-                .categoriaId(tx.getCategoria() != null ? tx.getCategoria().getId() : null) // usar getCategoria().getId()
+                .categoriaId(tx.getCategoria() != null ? tx.getCategoria().getId() : null)
                 .descricao(tx.getDescricao())
                 .data(tx.getData())
+                .observacoes(tx.getObservacoes())
+                .transacaoRecorrenteId(tx.getTransacaoRecorrente() != null ? tx.getTransacaoRecorrente().getId() : null)
+                .investimentoId(tx.getInvestimento() != null ? tx.getInvestimento().getId() : null)
+                .dataCriacao(tx.getDataCriacao())
                 .build();
     }
 
@@ -52,7 +56,7 @@ public class TransactionMapper {
                 dto.getDescricao(),
                 dto.getTipo(),
                 dto.getMetodoPagamento(),
-                null // observacoes - se seu DTO tiver, passe aqui
+                dto.getObservacoes()
         );
     }
 
@@ -64,7 +68,7 @@ public class TransactionMapper {
         if (dto.getDescricao() != null) tx.updateDescricao(dto.getDescricao());
         if (dto.getTipo() != null) tx.updateTipo(dto.getTipo());
         if (dto.getMetodoPagamento() != null) tx.updateMetodoPagamento(dto.getMetodoPagamento());
+        if (dto.getObservacoes() != null) tx.updateObservacoes(dto.getObservacoes());
         // categoria: se vier categoriaId, o service deve buscar Category e usar tx.updateCategoria(...)
-        // observacoes: similar
     }
 }

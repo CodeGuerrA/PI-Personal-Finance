@@ -37,6 +37,10 @@ public class RecurringTransactionUpdateRequestDTO {
 
     private LocalDate dataFim;
 
+    private Integer diaVencimento;
+
+    private Boolean ativa;
+
     @Size(max = 1000, message = "As observações podem ter no máximo 1000 caracteres")
     private String observacoes;
 }

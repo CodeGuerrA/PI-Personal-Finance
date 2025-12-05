@@ -2,6 +2,8 @@ package com.personalFinance.personal_finance.shared.exception;
 
 import com.personalFinance.personal_finance.user.domain.exception.UnauthorizedAccessException;
 import com.personalFinance.personal_finance.user.domain.exception.*;
+import com.personalFinance.personal_finance.investment.domain.exception.InvestmentMovementNotFoundException;
+import com.personalFinance.personal_finance.investment.domain.exception.InvestmentNotFoundException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -155,6 +157,45 @@ public class GlobalExceptionHandler {
                 .body(new ErrorResponse(
                         HttpStatus.BAD_REQUEST.value(),
                         "Argumento inválido",
+                        ex.getMessage(),
+                        LocalDateTime.now()
+                ));
+    }
+
+    @ExceptionHandler(IllegalStateException.class)
+    public ResponseEntity<ErrorResponse> handleIllegalState(IllegalStateException ex) {
+        log.warn("Estado inválido: {}", ex.getMessage());
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(new ErrorResponse(
+                        HttpStatus.BAD_REQUEST.value(),
+                        "Operação não permitida",
+                        ex.getMessage(),
+                        LocalDateTime.now()
+                ));
+    }
+
+    @ExceptionHandler(InvestmentNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleInvestmentNotFound(InvestmentNotFoundException ex) {
+        log.warn("Investimento não encontrado: {}", ex.getMessage());
+        return ResponseEntity
+                .status(HttpStatus.NOT_FOUND)
+                .body(new ErrorResponse(
+                        HttpStatus.NOT_FOUND.value(),
+                        "Investimento não encontrado",
+                        ex.getMessage(),
+                        LocalDateTime.now()
+                ));
+    }
+
+    @ExceptionHandler(InvestmentMovementNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleInvestmentMovementNotFound(InvestmentMovementNotFoundException ex) {
+        log.warn("Movimentação de investimento não encontrada: {}", ex.getMessage());
+        return ResponseEntity
+                .status(HttpStatus.NOT_FOUND)
+                .body(new ErrorResponse(
+                        HttpStatus.NOT_FOUND.value(),
+                        "Movimentação não encontrada",
                         ex.getMessage(),
                         LocalDateTime.now()
                 ));

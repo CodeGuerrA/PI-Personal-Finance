@@ -34,4 +34,7 @@ public class TransactionUpdateRequestDTO {
     private String descricao;
 
     private LocalDate data;
+
+    @Size(max = 1000, message = "As observações não podem ter mais de 1000 caracteres")
+    private String observacoes;
 }

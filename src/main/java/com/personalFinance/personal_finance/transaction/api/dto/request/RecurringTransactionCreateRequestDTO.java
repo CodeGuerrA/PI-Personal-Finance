@@ -40,6 +40,12 @@ public class RecurringTransactionCreateRequestDTO {
     @NotNull(message = "A frequência é obrigatória")
     private FrequenciaRecorrencia frequencia;
 
+    @Min(value = 1, message = "O dia de vencimento deve ser entre 1 e 31")
+    @Max(value = 31, message = "O dia de vencimento deve ser entre 1 e 31")
+    private Integer diaVencimento;
+
+    private LocalDate dataFim;
+
     @Size(max = 1000, message = "As observações podem ter no máximo 1000 caracteres")
     private String observacoes;
 }

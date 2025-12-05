@@ -32,4 +32,9 @@ public class TransactionResponseDTO {
 
     private String descricao;
     private LocalDate data;
+    private String observacoes;
+
+    private Long transacaoRecorrenteId;
+    private Long investimentoId;
+    private LocalDate dataCriacao;
 }

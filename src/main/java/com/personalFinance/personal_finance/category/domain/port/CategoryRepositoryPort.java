@@ -30,6 +30,8 @@ public interface CategoryRepositoryPort {
 
     List<Category> findByUsuarioIdAndNomeContaining(Long usuarioId, String nome);
 
+    List<Category> findAllAvailableForUserByNomeContaining(Long usuarioId, String nome);
+
     List<Category> findAllAvailableForUser(Long usuarioId);
 
     List<Category> findAllAvailableForUserByTipo(Long usuarioId, CategoryType tipo);

@@ -73,6 +73,11 @@ public class CategoryRepositoryAdapter implements CategoryRepositoryPort {
     }
 
     @Override
+    public List<Category> findAllAvailableForUserByNomeContaining(Long usuarioId, String nome) {
+        return categoryRepository.findAllAvailableForUserByNomeContaining(usuarioId, nome);
+    }
+
+    @Override
     public List<Category> findAllAvailableForUser(Long usuarioId) {
         return categoryRepository.findAllAvailableForUser(usuarioId);
     }

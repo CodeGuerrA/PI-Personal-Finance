@@ -35,6 +35,10 @@ public class RecurringTransactionResponseDTO {
 
     private FrequenciaRecorrencia frequencia;
 
+    private Integer diaVencimento;
+    private LocalDate proximaData;
+    private Boolean ativa;
+
     private String observacoes;
 
     private LocalDate dataCriacao;

@@ -91,7 +91,7 @@ public class CategoryFinder {
         User user = userRepository.findByKeycloakId(keycloakId)
                 .orElseThrow(() -> new IllegalArgumentException("Usuário não encontrado"));
 
-        List<Category> categories = categoryRepository.findByUsuarioIdAndNomeContaining(user.getId(), nome);
+        List<Category> categories = categoryRepository.findAllAvailableForUserByNomeContaining(user.getId(), nome);
 
         return mapper.toResponseDTOList(categories);
     }
