@@ -1,0 +1,166 @@
+[INFO] Scanning for projects...
+[INFO] 
+[INFO] ----------------< com.personalFinance:personal-finance >----------------
+[INFO] Building personal-finance 0.0.1-SNAPSHOT
+[INFO]   from pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] >>> spring-boot:3.5.8:run (default-cli) > test-compile @ personal-finance >>>
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ personal-finance ---
+[INFO] Copying 1 resource from src/main/resources to target/classes
+[INFO] Copying 0 resource from src/main/resources to target/classes
+[INFO] 
+[INFO] --- compiler:3.8.1:compile (default-compile) @ personal-finance ---
+[INFO] Nothing to compile - all classes are up to date
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ personal-finance ---
+[INFO] Copying 1 resource from src/test/resources to target/test-classes
+[INFO] 
+[INFO] --- compiler:3.8.1:testCompile (default-testCompile) @ personal-finance ---
+[INFO] Changes detected - recompiling the module!
+[INFO] Compiling 7 source files to /home/carlos-garcia/Documentos/personal-finance-app/personal-finance/target/test-classes
+[INFO] /home/carlos-garcia/Documentos/personal-finance-app/personal-finance/src/test/java/com/personalFinance/personal_finance/user/infrastructure/external/email/UserNotificationEmailServiceTest.java: /home/carlos-garcia/Documentos/personal-finance-app/personal-finance/src/test/java/com/personalFinance/personal_finance/user/infrastructure/external/email/UserNotificationEmailServiceTest.java uses unchecked or unsafe operations.
+[INFO] /home/carlos-garcia/Documentos/personal-finance-app/personal-finance/src/test/java/com/personalFinance/personal_finance/user/infrastructure/external/email/UserNotificationEmailServiceTest.java: Recompile with -Xlint:unchecked for details.
+[INFO] 
+[INFO] <<< spring-boot:3.5.8:run (default-cli) < test-compile @ personal-finance <<<
+[INFO] 
+[INFO] 
+[INFO] --- spring-boot:3.5.8:run (default-cli) @ personal-finance ---
+[INFO] Attaching agents: []
+Standard Commons Logging discovery in action with spring-jcl: please remove commons-logging.jar from classpath in order to avoid potential conflicts
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+
+ :: Spring Boot ::                (v3.5.8)
+
+2025-12-06T14:39:35.138-03:00  INFO 250791 --- [personal-finance] [           main] c.p.p.PersonalFinanceApplication         : Starting PersonalFinanceApplication using Java 21.0.9 with PID 250791 (/home/carlos-garcia/Documentos/personal-finance-app/personal-finance/target/classes started by carlos-garcia in /home/carlos-garcia/Documentos/personal-finance-app/personal-finance)
+2025-12-06T14:39:35.139-03:00 DEBUG 250791 --- [personal-finance] [           main] c.p.p.PersonalFinanceApplication         : Running with Spring Boot v3.5.8, Spring v6.2.14
+2025-12-06T14:39:35.140-03:00  INFO 250791 --- [personal-finance] [           main] c.p.p.PersonalFinanceApplication         : No active profile set, falling back to 1 default profile: "default"
+2025-12-06T14:39:35.942-03:00  INFO 250791 --- [personal-finance] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2025-12-06T14:39:36.025-03:00  INFO 250791 --- [personal-finance] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 76 ms. Found 7 JPA repository interfaces.
+2025-12-06T14:39:36.514-03:00  INFO 250791 --- [personal-finance] [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat initialized with port 8082 (http)
+2025-12-06T14:39:36.524-03:00  INFO 250791 --- [personal-finance] [           main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2025-12-06T14:39:36.525-03:00  INFO 250791 --- [personal-finance] [           main] o.apache.catalina.core.StandardEngine    : Starting Servlet engine: [Apache Tomcat/10.1.49]
+2025-12-06T14:39:36.574-03:00  INFO 250791 --- [personal-finance] [           main] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring embedded WebApplicationContext
+2025-12-06T14:39:36.575-03:00  INFO 250791 --- [personal-finance] [           main] w.s.c.ServletWebServerApplicationContext : Root WebApplicationContext: initialization completed in 1387 ms
+Standard Commons Logging discovery in action with spring-jcl: please remove commons-logging.jar from classpath in order to avoid potential conflicts
+2025-12-06T14:39:36.739-03:00  INFO 250791 --- [personal-finance] [           main] o.hibernate.jpa.internal.util.LogHelper  : HHH000204: Processing PersistenceUnitInfo [name: default]
+2025-12-06T14:39:36.795-03:00  INFO 250791 --- [personal-finance] [           main] org.hibernate.Version                    : HHH000412: Hibernate ORM core version 6.6.36.Final
+2025-12-06T14:39:36.820-03:00  INFO 250791 --- [personal-finance] [           main] o.h.c.internal.RegionFactoryInitiator    : HHH000026: Second-level cache disabled
+2025-12-06T14:39:37.026-03:00  INFO 250791 --- [personal-finance] [           main] o.s.o.j.p.SpringPersistenceUnitInfo      : No LoadTimeWeaver setup: ignoring JPA class transformer
+2025-12-06T14:39:37.051-03:00  INFO 250791 --- [personal-finance] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...
+2025-12-06T14:39:37.317-03:00  INFO 250791 --- [personal-finance] [           main] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Added connection org.postgresql.jdbc.PgConnection@647ff23e
+2025-12-06T14:39:37.319-03:00  INFO 250791 --- [personal-finance] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Start completed.
+2025-12-06T14:39:37.343-03:00  WARN 250791 --- [personal-finance] [           main] org.hibernate.orm.deprecation            : HHH90000025: PostgreSQLDialect does not need to be specified explicitly using 'hibernate.dialect' (remove the property setting and it will be selected by default)
+2025-12-06T14:39:37.362-03:00  INFO 250791 --- [personal-finance] [           main] org.hibernate.orm.connections.pooling    : HHH10001005: Database info:
+	Database JDBC URL [Connecting through datasource 'HikariDataSource (HikariPool-1)']
+	Database driver: undefined/unknown
+	Database version: 16.10
+	Autocommit mode: undefined/unknown
+	Isolation level: undefined/unknown
+	Minimum pool size: undefined/unknown
+	Maximum pool size: undefined/unknown
+2025-12-06T14:39:38.186-03:00  INFO 250791 --- [personal-finance] [           main] o.h.e.t.j.p.i.JtaPlatformInitiator       : HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+2025-12-06T14:39:38.295-03:00  INFO 250791 --- [personal-finance] [           main] j.LocalContainerEntityManagerFactoryBean : Initialized JPA EntityManagerFactory for persistence unit 'default'
+2025-12-06T14:39:38.476-03:00  INFO 250791 --- [personal-finance] [           main] o.s.d.j.r.query.QueryEnhancerFactory     : Hibernate is in classpath; If applicable, HQL parser will be used.
+2025-12-06T14:39:40.117-03:00 DEBUG 250791 --- [personal-finance] [           main] swordEncoderAuthenticationManagerBuilder : No authenticationProviders and no parentAuthenticationManager defined. Returning null.
+2025-12-06T14:39:40.218-03:00 DEBUG 250791 --- [personal-finance] [           main] o.s.s.web.DefaultSecurityFilterChain     : Will secure any request with filters: DisableEncodeUrlFilter, WebAsyncManagerIntegrationFilter, SecurityContextHolderFilter, HeaderWriterFilter, CorsFilter, LogoutFilter, BearerTokenAuthenticationFilter, AuthenticationFilter, RequestCacheAwareFilter, SecurityContextHolderAwareRequestFilter, AnonymousAuthenticationFilter, ExceptionTranslationFilter, AuthorizationFilter
+2025-12-06T14:39:40.458-03:00  INFO 250791 --- [personal-finance] [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat started on port 8082 (http) with context path '/'
+2025-12-06T14:39:40.465-03:00  INFO 250791 --- [personal-finance] [           main] c.p.p.PersonalFinanceApplication         : Started PersonalFinanceApplication in 5.678 seconds (process running for 5.968)
+2025-12-06T14:39:40.467-03:00  INFO 250791 --- [personal-finance] [           main] c.p.p.c.i.config.CategoryDataLoader      : Verificando e criando categorias padrão...
+2025-12-06T14:39:40.528-03:00 DEBUG 250791 --- [personal-finance] [           main] org.hibernate.SQL                        : 
+    select
+        c1_0.id,
+        c1_0.ativa,
+        c1_0.cor,
+        c1_0.icone,
+        c1_0.nome,
+        c1_0.padrao,
+        c1_0.tipo,
+        c1_0.usuario_id 
+    from
+        categories c1_0 
+    where
+        c1_0.padrao=true 
+        and c1_0.ativa=true
+Hibernate: 
+    select
+        c1_0.id,
+        c1_0.ativa,
+        c1_0.cor,
+        c1_0.icone,
+        c1_0.nome,
+        c1_0.padrao,
+        c1_0.tipo,
+        c1_0.usuario_id 
+    from
+        categories c1_0 
+    where
+        c1_0.padrao=true 
+        and c1_0.ativa=true
+2025-12-06T14:39:40.552-03:00  INFO 250791 --- [personal-finance] [           main] c.p.p.c.i.config.CategoryDataLoader      : 13 categorias padrão já existem no sistema.
+2025-12-06T14:40:08.426-03:00  INFO 250791 --- [personal-finance] [nio-8082-exec-1] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring DispatcherServlet 'dispatcherServlet'
+2025-12-06T14:40:08.426-03:00  INFO 250791 --- [personal-finance] [nio-8082-exec-1] o.s.web.servlet.DispatcherServlet        : Initializing Servlet 'dispatcherServlet'
+2025-12-06T14:40:08.429-03:00  INFO 250791 --- [personal-finance] [nio-8082-exec-1] o.s.web.servlet.DispatcherServlet        : Completed initialization in 3 ms
+2025-12-06T14:40:08.452-03:00 DEBUG 250791 --- [personal-finance] [nio-8082-exec-1] o.s.security.web.FilterChainProxy        : Securing GET /users/me
+2025-12-06T14:40:08.774-03:00 DEBUG 250791 --- [personal-finance] [nio-8082-exec-1] c.p.p.s.c.converter.JwtAuthConverter     : Autenticando usuário: carlos.garcia
+2025-12-06T14:40:08.774-03:00 DEBUG 250791 --- [personal-finance] [nio-8082-exec-1] o.s.s.o.s.r.a.JwtAuthenticationProvider  : Authenticated token
+2025-12-06T14:40:08.776-03:00 DEBUG 250791 --- [personal-finance] [nio-8082-exec-1] .s.r.w.a.BearerTokenAuthenticationFilter : Set SecurityContextHolder to JwtAuthenticationToken [Principal=org.springframework.security.oauth2.jwt.Jwt@54d9c5b3, Credentials=[PROTECTED], Authenticated=true, Details=WebAuthenticationDetails [RemoteIpAddress=0:0:0:0:0:0:0:1, SessionId=null], Granted Authorities=[]]
+2025-12-06T14:40:08.781-03:00 DEBUG 250791 --- [personal-finance] [nio-8082-exec-1] o.s.security.web.FilterChainProxy        : Secured GET /users/me
+2025-12-06T14:40:08.796-03:00 DEBUG 250791 --- [personal-finance] [nio-8082-exec-1] c.p.p.s.s.AuthenticatedUserProvider      : Keycloak ID do usuário autenticado: b4264273-0d3c-48d4-8ee1-dff4399d0b7d
+2025-12-06T14:40:08.797-03:00  INFO 250791 --- [personal-finance] [nio-8082-exec-1] c.p.p.u.api.controller.UserController    : Requisição para buscar perfil do usuário: b4264273-0d3c-48d4-8ee1-dff4399d0b7d
+2025-12-06T14:40:08.797-03:00  INFO 250791 --- [personal-finance] [nio-8082-exec-1] c.p.p.u.application.service.UserFinder   : Buscando usuário com Keycloak ID: b4264273-0d3c-48d4-8ee1-dff4399d0b7d
+2025-12-06T14:40:08.809-03:00 DEBUG 250791 --- [personal-finance] [nio-8082-exec-1] org.hibernate.SQL                        : 
+    select
+        u1_0.id,
+        u1_0.cpf,
+        u1_0.email,
+        u1_0.first_name,
+        u1_0.keycloak_id,
+        u1_0.last_name,
+        u1_0.user_name 
+    from
+        users u1_0 
+    where
+        u1_0.keycloak_id=?
+Hibernate: 
+    select
+        u1_0.id,
+        u1_0.cpf,
+        u1_0.email,
+        u1_0.first_name,
+        u1_0.keycloak_id,
+        u1_0.last_name,
+        u1_0.user_name 
+    from
+        users u1_0 
+    where
+        u1_0.keycloak_id=?
+2025-12-06T14:40:08.816-03:00  INFO 250791 --- [personal-finance] [nio-8082-exec-1] c.p.p.u.api.controller.UserController    : Perfil do usuário b4264273-0d3c-48d4-8ee1-dff4399d0b7d retornado com sucesso
+2025-12-06T14:40:13.378-03:00 DEBUG 250791 --- [personal-finance] [nio-8082-exec-2] o.s.security.web.FilterChainProxy        : Securing GET /objectives
+2025-12-06T14:40:13.378-03:00 DEBUG 250791 --- [personal-finance] [nio-8082-exec-2] o.s.s.w.a.AnonymousAuthenticationFilter  : Set SecurityContextHolder to anonymous SecurityContext
+2025-12-06T14:40:13.393-03:00 DEBUG 250791 --- [personal-finance] [nio-8082-exec-2] o.s.s.w.s.HttpSessionRequestCache        : Saved request http://localhost:8082/objectives?continue to session
+2025-12-06T14:41:24.953-03:00  INFO 250791 --- [personal-finance] [ionShutdownHook] o.s.b.w.e.tomcat.GracefulShutdown        : Commencing graceful shutdown. Waiting for active requests to complete
+2025-12-06T14:41:24.956-03:00  INFO 250791 --- [personal-finance] [tomcat-shutdown] o.s.b.w.e.tomcat.GracefulShutdown        : Graceful shutdown complete
+2025-12-06T14:41:24.967-03:00  INFO 250791 --- [personal-finance] [ionShutdownHook] j.LocalContainerEntityManagerFactoryBean : Closing JPA EntityManagerFactory for persistence unit 'default'
+2025-12-06T14:41:24.971-03:00  INFO 250791 --- [personal-finance] [ionShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Shutdown initiated...
+2025-12-06T14:41:24.983-03:00  INFO 250791 --- [personal-finance] [ionShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Shutdown completed.
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD FAILURE
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  01:54 min
+[INFO] Finished at: 2025-12-06T14:41:25-03:00
+[INFO] ------------------------------------------------------------------------
+[ERROR] Failed to execute goal org.springframework.boot:spring-boot-maven-plugin:3.5.8:run (default-cli) on project personal-finance: Process terminated with exit code: 143 -> [Help 1]
+[ERROR] 
+[ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.
+[ERROR] Re-run Maven using the -X switch to enable full debug logging.
+[ERROR] 
+[ERROR] For more information about the errors and possible solutions, please read the following articles:
+[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoExecutionException
