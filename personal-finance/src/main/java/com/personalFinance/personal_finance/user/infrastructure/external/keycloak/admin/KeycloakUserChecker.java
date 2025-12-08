@@ -30,20 +30,20 @@ public class KeycloakUserChecker {
             }
 
             UserRepresentation user = users.get(0);
-            String userId = user.getId();
 
-            // Busca as credenciais do usuário
-            List<CredentialRepresentation> credentials = keycloakAdminClient.realm(keycloakPropertiesClient.getRealm())
-                    .users()
-                    .get(userId)
-                    .credentials();
+            // CORREÇÃO: A forma correta de verificar senha temporária no Keycloak
+            // é através dos Required Actions, não das credenciais
+            List<String> requiredActions = user.getRequiredActions();
 
-            // Verifica se tem alguma credencial temporária
-            boolean hasTemp = credentials.stream()
-                    .anyMatch(cred -> "password".equals(cred.getType()) &&
-                                     Boolean.TRUE.equals(cred.isTemporary()));
+            // Se tem a action UPDATE_PASSWORD, significa que tem senha temporária
+            boolean hasTemp = requiredActions != null &&
+                             requiredActions.contains("UPDATE_PASSWORD");
 
-            log.info("Usuário '{}' {} senha temporária", username, hasTemp ? "TEM" : "NÃO TEM");
+            log.info("Usuário '{}' {} senha temporária (RequiredActions: {})",
+                     username,
+                     hasTemp ? "TEM" : "NÃO TEM",
+                     requiredActions);
+
             return hasTemp;
 
         } catch (Exception e) {

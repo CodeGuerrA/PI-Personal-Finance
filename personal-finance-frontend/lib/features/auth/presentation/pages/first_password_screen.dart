@@ -1,14 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 import 'package:sgfi/core/routes/app_routes.dart';
-// se você já tiver usecase/repository pra alterar senha, importa aqui depois
+import 'package:sgfi/core/validators/form_validators.dart';
 
 class FirstPasswordScreen extends StatefulWidget {
-  final String username;
-
-  const FirstPasswordScreen({
-    super.key,
-    required this.username,
-  });
+  const FirstPasswordScreen({super.key});
 
   @override
   State<FirstPasswordScreen> createState() => _FirstPasswordScreenState();
@@ -17,152 +14,174 @@ class FirstPasswordScreen extends StatefulWidget {
 class _FirstPasswordScreenState extends State<FirstPasswordScreen> {
   final _formKey = GlobalKey<FormState>();
 
-  final _newPasswordController = TextEditingController();
-  final _confirmPasswordController = TextEditingController();
+  String _username = '';
+  String _temporaryPassword = '';
+  String _newPassword = '';
+  String _confirmPassword = '';
 
   bool _isSubmitting = false;
-
-  @override
-  void dispose() {
-    _newPasswordController.dispose();
-    _confirmPasswordController.dispose();
-    super.dispose();
-  }
+  String? _errorMessage;
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
 
+    if (_newPassword != _confirmPassword) {
+      setState(() {
+        _errorMessage = 'As senhas não conferem.';
+      });
+      return;
+    }
+
+    _formKey.currentState!.save();
+
     setState(() {
       _isSubmitting = true;
+      _errorMessage = null;
     });
 
     try {
-      // ignore: unused_local_variable
-      final newPassword = _newPasswordController.text.trim();
-
-      // ================================
-      // AQUI ENTRA O BACK-END DEPOIS
-      // ================================
-      //
-      // Exemplo de como seu parceiro pode plugar:
-      //
-      // final dataSource = AuthRemoteDataSourceImpl();
-      // final repository = AuthRepositoryImpl(dataSource);
-      // final useCase = DefinePermanentPasswordUseCase(repository);
-      //
-      // await useCase(
-      //   DefinePermanentPasswordParams(
-      //     username: widget.username,
-      //     newPassword: newPassword,
-      //   ),
-      // );
-      //
-      // Por enquanto, só simulamos sucesso no front:
+      // Chamar endpoint /auth/first-access
+      final response = await http.post(
+        Uri.parse('http://localhost:8082/auth/first-access'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'username': _username,
+          'temporaryPassword': _temporaryPassword,
+          'newPassword': _newPassword,
+        }),
+      );
 
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Senha definida com sucesso!'),
-        ),
-      );
+      if (response.statusCode == 200) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Senha definida com sucesso! Faça login com sua nova senha.'),
+            backgroundColor: Colors.green,
+          ),
+        );
 
-      Navigator.of(context).pushReplacementNamed(AppRoutes.home);
+        // Redirecionar para tela de login
+        Navigator.of(context).pushReplacementNamed(AppRoutes.login);
+      } else {
+        setState(() {
+          _errorMessage = 'Erro: ${response.body}';
+        });
+      }
     } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Erro ao definir nova senha. Tente novamente.'),
-        ),
-      );
+      setState(() {
+        _errorMessage = 'Erro ao definir senha: $e';
+      });
     } finally {
       if (mounted) {
-        setState(() {
-          _isSubmitting = false;
-        });
+        setState(() => _isSubmitting = false);
       }
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Definir senha permanente'),
+        title: const Text('Primeiro Acesso'),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
+      body: SafeArea(
         child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 400),
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(24.0),
             child: Form(
               key: _formKey,
               child: Column(
                 mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Text(
-                    'Olá, ${widget.username.isNotEmpty ? widget.username : 'usuário'}!',
-                    style: theme.textTheme.titleMedium,
+                  const Icon(
+                    Icons.lock_reset,
+                    size: 72,
+                    color: Colors.blue,
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Defina sua senha permanente',
+                    style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                    ),
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 8),
-                  Text(
-                    'Como este é o seu primeiro acesso com senha temporária, '
-                    'defina agora uma senha permanente para continuar usando o SGFI.',
-                    style: theme.textTheme.bodyMedium,
+                  const Text(
+                    'Use sua senha temporária para definir uma senha permanente',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey,
+                    ),
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 24),
-                  TextFormField(
-                    controller: _newPasswordController,
-                    decoration: const InputDecoration(
-                      labelText: 'Nova senha',
+                  if (_errorMessage != null) ...[
+                    Text(
+                      _errorMessage!,
+                      style: const TextStyle(color: Colors.red),
+                      textAlign: TextAlign.center,
                     ),
-                    obscureText: true,
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Informe a nova senha';
-                      }
-                      if (value.length < 6) {
-                        return 'A senha deve ter pelo menos 6 caracteres';
-                      }
-                      return null;
-                    },
+                    const SizedBox(height: 16),
+                  ],
+                  TextFormField(
+                    decoration: const InputDecoration(
+                      labelText: 'Usuário',
+                      prefixIcon: Icon(Icons.person_outline),
+                    ),
+                    validator: (value) =>
+                        FormValidators.username(value, fieldLabel: 'o usuário'),
+                    onSaved: (value) => _username = value!.trim(),
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 16),
                   TextFormField(
-                    controller: _confirmPasswordController,
                     decoration: const InputDecoration(
-                      labelText: 'Confirmar nova senha',
+                      labelText: 'Senha Temporária',
+                      prefixIcon: Icon(Icons.lock_clock),
                     ),
                     obscureText: true,
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Confirme a nova senha';
-                      }
-                      if (value != _newPasswordController.text) {
-                        return 'As senhas não conferem';
-                      }
-                      return null;
-                    },
+                    validator: (value) =>
+                        FormValidators.password(value, minLength: 6),
+                    onSaved: (value) => _temporaryPassword = value!,
+                  ),
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    decoration: const InputDecoration(
+                      labelText: 'Nova Senha',
+                      prefixIcon: Icon(Icons.lock_reset),
+                    ),
+                    obscureText: true,
+                    validator: (value) =>
+                        FormValidators.password(value, minLength: 8),
+                    onChanged: (value) => _newPassword = value,
+                    onSaved: (value) => _newPassword = value!,
+                  ),
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    decoration: const InputDecoration(
+                      labelText: 'Confirmar Nova Senha',
+                      prefixIcon: Icon(Icons.lock_outline),
+                    ),
+                    obscureText: true,
+                    validator: (value) =>
+                        FormValidators.password(value, minLength: 8),
+                    onChanged: (value) => _confirmPassword = value,
+                    onSaved: (value) => _confirmPassword = value!,
                   ),
                   const SizedBox(height: 24),
                   SizedBox(
-                    height: 48,
+                    width: double.infinity,
                     child: ElevatedButton(
                       onPressed: _isSubmitting ? null : _submit,
                       child: _isSubmitting
                           ? const SizedBox(
                               width: 20,
                               height: 20,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                              ),
+                              child: CircularProgressIndicator(strokeWidth: 2),
                             )
-                          : const Text('Salvar e continuar'),
+                          : const Text('Definir Senha Permanente'),
                     ),
                   ),
                 ],

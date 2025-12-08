@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:sgfi/core/routes/app_routes.dart';
 import 'package:sgfi/core/validators/form_validators.dart';
+import 'package:sgfi/features/auth/presentation/providers/auth_provider.dart';
 
 class DefinePasswordScreen extends StatefulWidget {
   const DefinePasswordScreen({super.key});
@@ -35,25 +37,44 @@ class _DefinePasswordScreenState extends State<DefinePasswordScreen> {
     });
 
     try {
-      // 🧪 MODO DEMO (sem backend)
-      // Aqui no futuro você vai chamar:
-      // PATCH /users/{id}/password com http + token etc.
+      // Obter email e código dos argumentos da rota
+      final args = ModalRoute.of(context)?.settings.arguments as Map<String, String>?;
+      final email = args?['email'] ?? '';
+      final code = args?['code'] ?? '';
 
-      await Future.delayed(const Duration(milliseconds: 800));
+      if (email.isEmpty || code.isEmpty) {
+        throw Exception('Email ou código de recuperação inválido');
+      }
+
+      final authProvider = context.read<AuthProvider>();
+
+      final success = await authProvider.resetPassword(
+        email: email,
+        code: code,
+        newPassword: _newPassword,
+      );
 
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Senha definida com sucesso! Faça login novamente.'),
-        ),
-      );
+      if (success) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Senha definida com sucesso! Faça login novamente.'),
+            backgroundColor: Colors.green,
+          ),
+        );
 
-      // Volta para a tela de login
-      Navigator.of(context).pushNamedAndRemoveUntil(
-        AppRoutes.login,
-        (route) => false,
-      );
+        // Volta para a tela de login
+        Navigator.of(context).pushNamedAndRemoveUntil(
+          AppRoutes.login,
+          (route) => false,
+        );
+      } else {
+        setState(() {
+          _errorMessage = authProvider.errorMessage ??
+              'Erro ao definir senha. Verifique o código de recuperação.';
+        });
+      }
     } catch (e) {
       setState(() {
         _errorMessage = 'Erro ao definir senha. Tente novamente.\nDetalhe: $e';

@@ -924,8 +924,7 @@ class _ReportsOverviewScreenState extends State<ReportsOverviewScreen> {
 
     return Colors.primaries[hash % Colors.primaries.length]
         [shade]!
-        // ignore: deprecated_member_use
-        .withOpacity(0.9);
+        .withValues(alpha: 0.9);
   }
 
   List<PieChartSectionData> _buildPieSectionsForPaymentMethod(

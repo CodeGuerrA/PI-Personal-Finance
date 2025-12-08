@@ -15,6 +15,7 @@ import 'package:sgfi/features/auth/presentation/pages/profile_screen.dart';
 import 'package:sgfi/features/auth/presentation/pages/change_password_screen.dart';
 import 'package:sgfi/features/reports/presentation/pages/reports_overview_screen.dart';
 import 'package:sgfi/features/auth/presentation/pages/first_password_screen.dart';
+import 'package:sgfi/features/auth/presentation/pages/verify_code_screen.dart';
 
 
 
@@ -37,6 +38,7 @@ class AppRoutes {
   static const String recurrences = '/recurrences';
   static const String reportsOverview = '/reports-overview';
   static const String firstPassword = '/first-password';
+  static const String verifyCode = '/verify-code';
 
 
 
@@ -112,12 +114,14 @@ class AppRoutes {
           builder: (_) => const ReportsOverviewScreen(),
           settings: settings,
         );
-      case AppRoutes.firstPassword:                        // ⬅️ NOVO CASE
-        final username = settings.arguments as String?;
+      case AppRoutes.firstPassword:
         return MaterialPageRoute(
-          builder: (_) => FirstPasswordScreen(
-            username: username ?? '',
-          ),
+          builder: (_) => const FirstPasswordScreen(),
+          settings: settings,
+        );
+      case AppRoutes.verifyCode:
+        return MaterialPageRoute(
+          builder: (_) => const VerifyCodeScreen(),
           settings: settings,
         );
 

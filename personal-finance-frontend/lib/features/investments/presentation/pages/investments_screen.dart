@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:sgfi/features/investments/domain/entities/investment_entity.dart';
-import 'package:sgfi/features/investments/domain/repositories/investment_repository.dart';
-import 'package:sgfi/features/investments/data/repositories/investment_repository_impl.dart';
-import 'package:sgfi/features/investments/data/datasources/investment_remote_datasource_impl.dart';
+import 'package:sgfi/features/investments/presentation/providers/investment_provider.dart';
 
 class InvestmentsScreen extends StatefulWidget {
   const InvestmentsScreen({super.key});
@@ -12,53 +11,20 @@ class InvestmentsScreen extends StatefulWidget {
 }
 
 class _InvestmentsScreenState extends State<InvestmentsScreen> {
-  late final InvestmentRepository _investmentRepository;
-  List<InvestmentEntity> _allInvestments = [];
-  bool _isLoading = true;
-  String? _errorMessage;
   InvestmentType? _filterType;
 
   @override
   void initState() {
     super.initState();
-    _investmentRepository = InvestmentRepositoryImpl(
-      remoteDataSource: InvestmentRemoteDataSourceImpl(),
-    );
-    _loadInvestments();
-  }
-
-  Future<void> _loadInvestments() async {
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<InvestmentProvider>().loadInvestments();
     });
-
-    try {
-      final investments = await _investmentRepository.getAllInvestments();
-      setState(() {
-        _allInvestments = investments;
-        _isLoading = false;
-      });
-    } catch (e) {
-      setState(() {
-        _errorMessage = 'Erro ao carregar investimentos: ${e.toString()}';
-        _isLoading = false;
-      });
-    }
   }
 
-  List<InvestmentEntity> get _filteredInvestments {
-    if (_filterType == null) return _allInvestments;
-    return _allInvestments.where((i) => i.type == _filterType).toList();
+  List<InvestmentEntity> _getFilteredInvestments(List<InvestmentEntity> all) {
+    if (_filterType == null) return all;
+    return all.where((i) => i.type == _filterType).toList();
   }
-
-  double get _totalInvested =>
-      _allInvestments.fold(0.0, (sum, i) => sum + (i.totalInvested ?? 0));
-
-  double get _currentValue =>
-      _allInvestments.fold(0.0, (sum, i) => sum + (i.currentValue ?? 0));
-
-  double get _totalProfit => _currentValue - _totalInvested;
 
   String _formatCurrency(double value) {
     final sign = value < 0 ? '-' : '';
@@ -111,10 +77,8 @@ class _InvestmentsScreenState extends State<InvestmentsScreen> {
             bottom: MediaQuery.of(ctx).viewInsets.bottom + 16,
           ),
           child: _InvestmentForm(
-            repository: _investmentRepository,
             onSubmit: () {
               Navigator.of(ctx).pop();
-              _loadInvestments();
             },
           ),
         );
@@ -137,11 +101,9 @@ class _InvestmentsScreenState extends State<InvestmentsScreen> {
             top: 16,
             bottom: MediaQuery.of(ctx).viewInsets.bottom + 16),
           child: _InvestmentForm(
-            repository: _investmentRepository,
             initial: investment,
             onSubmit: () {
               Navigator.of(ctx).pop();
-              _loadInvestments();
             },
           ),
         );
@@ -150,33 +112,23 @@ class _InvestmentsScreenState extends State<InvestmentsScreen> {
   }
 
   void _deleteInvestment(InvestmentEntity inv) async {
-    try {
-      await _investmentRepository.deleteInvestment(int.parse(inv.id));
-      _loadInvestments();
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Investimento "${inv.name}" removido.'),
-          ),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Erro ao remover investimento: ${e.toString()}'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
+    final investmentProvider = context.read<InvestmentProvider>();
+    final success = await investmentProvider.deleteInvestment(int.parse(inv.id));
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(success
+              ? 'Investimento "${inv.name}" removido.'
+              : 'Erro ao remover investimento: ${investmentProvider.errorMessage ?? "Desconhecido"}'),
+          backgroundColor: success ? null : Colors.red,
+        ),
+      );
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final investments = _filteredInvestments;
-    final profitColor = _profitColor(_totalProfit);
-
     return Scaffold(
       appBar: AppBar(
         title: const Text('Investimentos'),
@@ -186,26 +138,35 @@ class _InvestmentsScreenState extends State<InvestmentsScreen> {
         icon: const Icon(Icons.add),
         label: const Text('Adicionar'),
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : _errorMessage != null
-              ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(Icons.error_outline,
-                          size: 48, color: Colors.red),
-                      const SizedBox(height: 16),
-                      Text(_errorMessage!, textAlign: TextAlign.center),
-                      const SizedBox(height: 16),
-                      ElevatedButton(
-                        onPressed: _loadInvestments,
-                        child: const Text('Tentar novamente'),
-                      ),
-                    ],
+      body: Consumer<InvestmentProvider>(
+        builder: (context, investmentProvider, child) {
+          if (investmentProvider.isLoading) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          if (investmentProvider.errorMessage != null) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.error_outline, size: 48, color: Colors.red),
+                  const SizedBox(height: 16),
+                  Text(investmentProvider.errorMessage!, textAlign: TextAlign.center),
+                  const SizedBox(height: 16),
+                  ElevatedButton(
+                    onPressed: () => investmentProvider.loadInvestments(refresh: true),
+                    child: const Text('Tentar novamente'),
                   ),
-                )
-              : Padding(
+                ],
+              ),
+            );
+          }
+
+          final investments = _getFilteredInvestments(investmentProvider.investments);
+          final totalProfit = investmentProvider.totalProfit;
+          final profitColor = _profitColor(totalProfit);
+
+          return Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -220,7 +181,7 @@ class _InvestmentsScreenState extends State<InvestmentsScreen> {
                 Expanded(
                   child: _SummaryCard(
                     title: 'Total investido',
-                    value: _formatCurrency(_totalInvested),
+                    value: _formatCurrency(investmentProvider.totalInvested),
                     highlightColor: Colors.blue,
                   ),
                 ),
@@ -228,7 +189,7 @@ class _InvestmentsScreenState extends State<InvestmentsScreen> {
                 Expanded(
                   child: _SummaryCard(
                     title: 'Valor atual',
-                    value: _formatCurrency(_currentValue),
+                    value: _formatCurrency(investmentProvider.currentValue),
                     highlightColor: Colors.deepPurple,
                   ),
                 ),
@@ -236,7 +197,7 @@ class _InvestmentsScreenState extends State<InvestmentsScreen> {
                 Expanded(
                   child: _SummaryCard(
                     title: 'Resultado',
-                    value: _formatCurrency(_totalProfit),
+                    value: _formatCurrency(totalProfit),
                     highlightColor: profitColor,
                   ),
                 ),
@@ -402,6 +363,8 @@ class _InvestmentsScreenState extends State<InvestmentsScreen> {
             ),
           ],
         ),
+      );
+        },
       ),
     );
   }
@@ -477,12 +440,10 @@ class _FilterChip extends StatelessWidget {
 }
 
 class _InvestmentForm extends StatefulWidget {
-  final InvestmentRepository repository;
   final VoidCallback onSubmit;
   final InvestmentEntity? initial;
 
   const _InvestmentForm({
-    required this.repository,
     required this.onSubmit,
     this.initial,
   });
@@ -555,46 +516,46 @@ class _InvestmentFormState extends State<_InvestmentForm> {
       _isSubmitting = true;
     });
 
-    try {
-      final isEditing = widget.initial != null;
+    final investmentProvider = context.read<InvestmentProvider>();
+    final isEditing = widget.initial != null;
+    final tipoString = _serializeInvestmentType(_type);
 
-      final tipoString = _serializeInvestmentType(_type);
+    bool success;
+    if (isEditing) {
+      success = await investmentProvider.updateInvestment(
+        id: int.parse(widget.initial!.id),
+        nomeAtivo: _name,
+        simbolo: _simbolo,
+        quantidade: _quantity,
+        valorCompra: _buyPrice,
+        dataCompra: DateTime.now(),
+        corretora: _broker,
+      );
+    } else {
+      success = await investmentProvider.createInvestment(
+        tipoInvestimento: tipoString,
+        nomeAtivo: _name,
+        simbolo: _simbolo,
+        quantidade: _quantity,
+        valorCompra: _buyPrice,
+        dataCompra: DateTime.now(),
+        corretora: _broker,
+      );
+    }
 
-      if (isEditing) {
-        await widget.repository.updateInvestment(
-          id: int.parse(widget.initial!.id),
-          nomeAtivo: _name,
-          simbolo: _simbolo,
-          quantidade: _quantity,
-          valorCompra: _buyPrice,
-          dataCompra: DateTime.now(),
-          corretora: _broker,
-        );
-      } else {
-        await widget.repository.createInvestment(
-          tipoInvestimento: tipoString,
-          nomeAtivo: _name,
-          simbolo: _simbolo,
-          quantidade: _quantity,
-          valorCompra: _buyPrice,
-          dataCompra: DateTime.now(),
-          corretora: _broker,
-        );
-      }
+    setState(() {
+      _isSubmitting = false;
+    });
 
+    if (success) {
       widget.onSubmit();
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Erro ao salvar investimento: ${e.toString()}'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-      setState(() {
-        _isSubmitting = false;
-      });
+    } else if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Erro ao salvar investimento: ${investmentProvider.errorMessage ?? "Desconhecido"}'),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 

@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:sgfi/features/auth/presentation/providers/auth_provider.dart';
 
 class ChangePasswordScreen extends StatefulWidget {
   const ChangePasswordScreen({super.key});
@@ -10,7 +12,6 @@ class ChangePasswordScreen extends StatefulWidget {
 class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
   final _formKey = GlobalKey<FormState>();
 
-  // ignore: unused_field
   String _currentPassword = '';
   String _newPassword = '';
   String _confirmPassword = '';
@@ -47,32 +48,39 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
     setState(() => _isSubmitting = true);
 
     try {
-      // =====================================
-      // MODO MOCK: simula alteração no back
-      // =====================================
-      await Future.delayed(const Duration(seconds: 1));
+      final authProvider = context.read<AuthProvider>();
+
+      final success = await authProvider.changePassword(
+        currentPassword: _currentPassword,
+        newPassword: _newPassword,
+      );
 
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Senha alterada com sucesso (simulação).'),
-        ),
-      );
+      if (success) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Senha alterada com sucesso!'),
+            backgroundColor: Colors.green,
+          ),
+        );
 
-      Navigator.of(context).pop();
-
-      // =====================================
-      // MODO BACKEND:
-      // seu parceiro chama PATCH /users/{id}/password
-      // com { currentPassword, newPassword }
-      // e trata erros tipo "senha atual incorreta"
-      // =====================================
+        Navigator.of(context).pop();
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(authProvider.errorMessage ??
+                'Erro ao alterar senha. Verifique a senha atual.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Erro ao alterar senha. Tente novamente.'),
+        SnackBar(
+          content: Text('Erro ao alterar senha: ${e.toString()}'),
+          backgroundColor: Colors.red,
         ),
       );
     } finally {

@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:sgfi/core/routes/app_routes.dart';
+import 'package:sgfi/features/auth/presentation/providers/auth_provider.dart';
 
 class ForgotPasswordScreen extends StatefulWidget {
   const ForgotPasswordScreen({super.key});
@@ -12,10 +15,6 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   String _email = '';
   bool _isSubmitting = false;
 
-  // Se quiser, depois o back pluga aqui:
-  // final _authRemoteDataSource = AuthRemoteDataSourceImpl();
-  // etc...
-
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -24,37 +23,42 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     setState(() => _isSubmitting = true);
 
     try {
-      // =====================================================
-      // MODO MOCK (sem backend): apenas simula envio de email
-      // =====================================================
-      await Future.delayed(const Duration(seconds: 1));
+      final authProvider = context.read<AuthProvider>();
+
+      final success = await authProvider.forgotPassword(_email);
 
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Se o email $_email existir, você receberá '
-            'instruções para redefinir sua senha.',
+      if (success) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Código de verificação enviado para $_email.\nVerifique sua caixa de entrada.',
+            ),
+            backgroundColor: Colors.green,
           ),
-        ),
-      );
+        );
 
-      Navigator.of(context).pop(); // volta pro login
-
-      // =====================================================
-      // MODO BACKEND (quando o seu parceiro plugar a API):
-      //
-      // await _authRemoteDataSource.requestPasswordReset(_email);
-      //
-      // Mostrar SnackBar similar e dar pop();
-      // =====================================================
-
+        // Navegar para tela de verificação de código
+        Navigator.of(context).pushReplacementNamed(
+          AppRoutes.verifyCode,
+          arguments: _email,
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(authProvider.errorMessage ??
+                'Erro ao solicitar redefinição. Tente novamente.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Erro ao solicitar redefinição. Tente novamente.'),
+        SnackBar(
+          content: Text('Erro ao solicitar redefinição: ${e.toString()}'),
+          backgroundColor: Colors.red,
         ),
       );
     } finally {

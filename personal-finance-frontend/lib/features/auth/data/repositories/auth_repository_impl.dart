@@ -49,4 +49,57 @@ class AuthRepositoryImpl implements AuthRepository {
     final userModel = await remoteDataSource.updateCurrentUser(email: email);
     return userModel;
   }
+
+  @override
+  Future<void> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    await remoteDataSource.changePassword(
+      currentPassword: currentPassword,
+      newPassword: newPassword,
+    );
+  }
+
+  @override
+  Future<void> setPassword({
+    required int userId,
+    required String newPassword,
+  }) async {
+    await remoteDataSource.setPassword(
+      userId: userId,
+      newPassword: newPassword,
+    );
+  }
+
+  @override
+  Future<void> forgotPassword(String email) async {
+    await remoteDataSource.forgotPassword(email);
+  }
+
+  @override
+  Future<void> resetPassword({
+    required String email,
+    required String code,
+    required String newPassword,
+  }) async {
+    await remoteDataSource.resetPassword(
+      email: email,
+      code: code,
+      newPassword: newPassword,
+    );
+  }
+
+  @override
+  Future<void> deleteAccount() async {
+    await remoteDataSource.deleteAccount();
+  }
+
+  @override
+  Future<AuthTokensEntity> refreshToken(String refreshToken) async {
+    final tokens = await remoteDataSource.refreshToken(
+      refreshToken: refreshToken,
+    );
+    return tokens;
+  }
 }

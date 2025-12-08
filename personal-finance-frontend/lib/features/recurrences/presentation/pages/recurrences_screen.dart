@@ -1,13 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:sgfi/features/recurrences/domain/entities/recurrence_entity.dart';
-import 'package:sgfi/features/recurrences/domain/repositories/recurrence_repository.dart';
-import 'package:sgfi/features/recurrences/data/repositories/recurrence_repository_impl.dart';
-import 'package:sgfi/features/recurrences/data/datasources/recurrence_remote_datasource_impl.dart';
+import 'package:sgfi/features/recurrences/presentation/providers/recurrence_provider.dart';
 import 'package:sgfi/features/transactions/domain/entities/transaction_entity.dart';
 import 'package:sgfi/features/categories/domain/entities/category_entity.dart';
-import 'package:sgfi/features/categories/domain/repositories/category_repository.dart';
-import 'package:sgfi/features/categories/data/repositories/category_repository_impl.dart';
-import 'package:sgfi/features/categories/data/datasources/category_remote_datasource_impl.dart';
+import 'package:sgfi/features/categories/presentation/providers/category_provider.dart';
 
 class RecurrencesScreen extends StatefulWidget {
   const RecurrencesScreen({super.key});
@@ -17,50 +14,14 @@ class RecurrencesScreen extends StatefulWidget {
 }
 
 class _RecurrencesScreenState extends State<RecurrencesScreen> {
-  late final RecurrenceRepository _recurrenceRepository;
-  late final CategoryRepository _categoryRepository;
-  List<RecurrenceEntity> _recurrences = [];
-  List<CategoryEntity> _allCategories = [];
-  bool _isLoading = true;
-  String? _errorMessage;
-
   @override
   void initState() {
     super.initState();
-    _recurrenceRepository = RecurrenceRepositoryImpl(
-      remoteDataSource: RecurrenceRemoteDataSourceImpl(),
-    );
-    _categoryRepository = CategoryRepositoryImpl(
-      remoteDataSource: CategoryRemoteDataSourceImpl(),
-    );
-    _loadData();
-  }
-
-  Future<void> _loadData() async {
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<RecurrenceProvider>().loadRecurrences();
+      context.read<CategoryProvider>().loadCategories();
     });
-
-    try {
-      final results = await Future.wait([
-        _recurrenceRepository.getActiveRecurrences(),
-        _categoryRepository.getAllCategories(),
-      ]);
-
-      setState(() {
-        _recurrences = results[0] as List<RecurrenceEntity>;
-        _allCategories = results[1] as List<CategoryEntity>;
-        _isLoading = false;
-      });
-    } catch (e) {
-      setState(() {
-        _errorMessage = 'Erro ao carregar dados: ${e.toString()}';
-        _isLoading = false;
-      });
-    }
   }
-
 
   String _formatDate(DateTime date) {
     return '${date.day.toString().padLeft(2, '0')}/'
@@ -92,6 +53,8 @@ class _RecurrencesScreenState extends State<RecurrencesScreen> {
   }
 
   void _openForm({RecurrenceEntity? editing}) {
+    final categoryProvider = context.read<CategoryProvider>();
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -107,12 +70,10 @@ class _RecurrencesScreenState extends State<RecurrencesScreen> {
             bottom: MediaQuery.of(ctx).viewInsets.bottom + 16,
           ),
           child: _RecurrenceForm(
-            repository: _recurrenceRepository,
-            categories: _allCategories,
+            categories: categoryProvider.categories,
             initial: editing,
             onSubmit: () {
               Navigator.of(ctx).pop();
-              _loadData();
             },
           ),
         );
@@ -121,56 +82,18 @@ class _RecurrencesScreenState extends State<RecurrencesScreen> {
   }
 
   void _deleteRecurrence(RecurrenceEntity rec) async {
-    try {
-      await _recurrenceRepository.deleteRecurrence(int.parse(rec.id));
-      _loadData();
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Recorrência "${rec.name}" removida.'),
-          ),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Erro ao remover recorrência: ${e.toString()}'),
-            backgroundColor: Colors.red),
-        );
-      }
-    }
-  }
+    final recurrenceProvider = context.read<RecurrenceProvider>();
+    final success = await recurrenceProvider.deleteRecurrence(int.parse(rec.id));
 
-  void _confirmDeleteRecurrence(RecurrenceEntity rec) async {
-    final confirm = await showDialog<bool>(
-          context: context,
-          builder: (ctx) {
-            return AlertDialog(
-              title: const Text('Remover recorrência'),
-              content: Text(
-                'Tem certeza que deseja remover a recorrência "${rec.name}"?',
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.of(ctx).pop(false),
-                  child: const Text('Cancelar'),
-                ),
-                TextButton(
-                  onPressed: () => Navigator.of(ctx).pop(true),
-                  child: const Text(
-                    'Remover',
-                    style: TextStyle(color: Colors.red),
-                  ),
-                ),
-              ],
-            );
-          },
-        ) ??
-        false;
-
-    if (confirm) {
-      _deleteRecurrence(rec);
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(success
+              ? 'Recorrência "${rec.name}" removida.'
+              : 'Erro ao remover recorrência: ${recurrenceProvider.errorMessage ?? "Desconhecido"}'),
+          backgroundColor: success ? null : Colors.red,
+        ),
+      );
     }
   }
 
@@ -180,122 +103,130 @@ class _RecurrencesScreenState extends State<RecurrencesScreen> {
       appBar: AppBar(
         title: const Text('Transações recorrentes'),
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : _errorMessage != null
-              ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(Icons.error_outline, size: 48, color: Colors.red),
-                      const SizedBox(height: 16),
-                      Text(_errorMessage!, textAlign: TextAlign.center),
-                      const SizedBox(height: 16),
-                      ElevatedButton(
-                        onPressed: _loadData,
-                        child: const Text('Tentar novamente'),
-                      ),
-                    ],
+      body: Consumer<RecurrenceProvider>(
+        builder: (context, recurrenceProvider, child) {
+          if (recurrenceProvider.isLoading) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          if (recurrenceProvider.errorMessage != null) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.error_outline, size: 48, color: Colors.red),
+                  const SizedBox(height: 16),
+                  Text(recurrenceProvider.errorMessage!,
+                      textAlign: TextAlign.center),
+                  const SizedBox(height: 16),
+                  ElevatedButton(
+                    onPressed: () =>
+                        recurrenceProvider.loadRecurrences(refresh: true),
+                    child: const Text('Tentar novamente'),
                   ),
+                ],
+              ),
+            );
+          }
+
+          final recurrences = recurrenceProvider.recurrences;
+          return recurrences.isEmpty
+              ? const Center(
+                  child: Text('Nenhuma recorrência cadastrada.'),
                 )
-              : _recurrences.isEmpty
-          ? const Center(
-              child: Text('Nenhuma recorrência cadastrada.'),
-            )
-          : ListView.separated(
-              padding: const EdgeInsets.all(16),
-              itemCount: _recurrences.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 12),
-              itemBuilder: (context, index) {
-                final r = _recurrences[index];
-                final color = _typeColor(r.type);
-                final icon = _typeIcon(r.type);
+              : ListView.separated(
+                  padding: const EdgeInsets.all(16),
+                  itemCount: recurrences.length,
+                  separatorBuilder: (_, __) => const SizedBox(height: 12),
+                  itemBuilder: (context, index) {
+                    final r = recurrences[index];
+                    final color = _typeColor(r.type);
+                    final icon = _typeIcon(r.type);
 
-                final status = r.isActive ? 'Ativa' : 'Inativa';
-                final dateInfo = r.endDate == null
-                    ? 'Desde ${_formatDate(r.startDate)}'
-                    : 'De ${_formatDate(r.startDate)} até ${_formatDate(r.endDate!)}';
+                    final status = r.isActive ? 'Ativa' : 'Inativa';
+                    final dateInfo = r.endDate == null
+                        ? 'Desde ${_formatDate(r.startDate)}'
+                        : 'De ${_formatDate(r.startDate)} até ${_formatDate(r.endDate!)}';
 
-                return Dismissible(
-                  key: ValueKey(r.id),
-                  direction: DismissDirection.endToStart,
-                  background: Container(
-                    alignment: Alignment.centerRight,
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 16),
-                    color: Colors.red,
-                    child: const Icon(
-                      Icons.delete,
-                      color: Colors.white,
-                    ),
-                  ),
-                  confirmDismiss: (_) async {
-                    final confirm = await showDialog<bool>(
-                          context: context,
-                          builder: (ctx) {
-                            return AlertDialog(
-                              title:
-                                  const Text('Remover recorrência'),
-                              content: Text(
-                                'Tem certeza que deseja remover a recorrência "${r.name}"?',
-                              ),
-                              actions: [
-                                TextButton(
-                                  onPressed: () =>
-                                      Navigator.of(ctx).pop(false),
-                                  child: const Text('Cancelar'),
-                                ),
-                                TextButton(
-                                  onPressed: () =>
-                                      Navigator.of(ctx).pop(true),
-                                  child: const Text(
-                                    'Remover',
-                                    style:
-                                        TextStyle(color: Colors.red),
-                                  ),
-                                ),
-                              ],
-                            );
-                          },
-                        ) ??
-                        false;
-                    if (confirm) {
-                      _deleteRecurrence(r);
-                    }
-                    return confirm;
-                  },
-                  child: Card(
-                    child: ListTile(
-                      leading: CircleAvatar(
-                        backgroundColor: color.withOpacity(0.1),
-                        child: Icon(icon, color: color),
-                      ),
-                      title: Text(r.name),
-                      subtitle: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            '${_frequencyLabel(r.frequency)} • ${r.categoryName}',
-                          ),
-                          Text(
-                            '$status • $dateInfo',
-                            style: const TextStyle(fontSize: 12),
-                          ),
-                        ],
-                      ),
-                      trailing: Text(
-                        'R\$ ${r.amount.toStringAsFixed(2)}',
-                        style: TextStyle(
-                          color: color,
-                          fontWeight: FontWeight.bold,
+                    return Dismissible(
+                      key: ValueKey(r.id),
+                      direction: DismissDirection.endToStart,
+                      background: Container(
+                        alignment: Alignment.centerRight,
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        color: Colors.red,
+                        child: const Icon(
+                          Icons.delete,
+                          color: Colors.white,
                         ),
                       ),
-                      onTap: () => _openForm(editing: r),
-                    ),
-                  ),
+                      confirmDismiss: (_) async {
+                        final confirm = await showDialog<bool>(
+                              context: context,
+                              builder: (ctx) {
+                                return AlertDialog(
+                                  title: const Text('Remover recorrência'),
+                                  content: Text(
+                                    'Tem certeza que deseja remover a recorrência "${r.name}"?',
+                                  ),
+                                  actions: [
+                                    TextButton(
+                                      onPressed: () =>
+                                          Navigator.of(ctx).pop(false),
+                                      child: const Text('Cancelar'),
+                                    ),
+                                    TextButton(
+                                      onPressed: () =>
+                                          Navigator.of(ctx).pop(true),
+                                      child: const Text(
+                                        'Remover',
+                                        style: TextStyle(color: Colors.red),
+                                      ),
+                                    ),
+                                  ],
+                                );
+                              },
+                            ) ??
+                            false;
+                        if (confirm) {
+                          _deleteRecurrence(r);
+                        }
+                        return confirm;
+                      },
+                      child: Card(
+                        child: ListTile(
+                          leading: CircleAvatar(
+                            backgroundColor: color.withValues(alpha: 0.1),
+                            child: Icon(icon, color: color),
+                          ),
+                          title: Text(r.name),
+                          subtitle: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                '${_frequencyLabel(r.frequency)} • ${r.categoryName}',
+                              ),
+                              Text(
+                                '$status • $dateInfo',
+                                style: const TextStyle(fontSize: 12),
+                              ),
+                            ],
+                          ),
+                          trailing: Text(
+                            'R\$ ${r.amount.toStringAsFixed(2)}',
+                            style: TextStyle(
+                              color: color,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          onTap: () => _openForm(editing: r),
+                        ),
+                      ),
+                    );
+                  },
                 );
-              },
-            ),
+        },
+      ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _openForm(),
         icon: const Icon(Icons.add),
@@ -306,13 +237,11 @@ class _RecurrencesScreenState extends State<RecurrencesScreen> {
 }
 
 class _RecurrenceForm extends StatefulWidget {
-  final RecurrenceRepository repository;
   final List<CategoryEntity> categories;
   final VoidCallback onSubmit;
   final RecurrenceEntity? initial;
 
   const _RecurrenceForm({
-    required this.repository,
     required this.categories,
     required this.onSubmit,
     this.initial,
@@ -357,22 +286,23 @@ class _RecurrenceFormState extends State<_RecurrenceForm> {
       _observacoes = r.observacoes;
 
       // Encontrar categoria correspondente pelo ID ou nome
-      if (r.categoriaId != null) {
-        _selectedCategory = widget.categories.firstWhere(
-          (c) => c.id == r.categoriaId.toString(),
-          orElse: () => widget.categories.firstWhere(
-            (c) => c.isIncome == (r.type == TransactionType.income),
-          ),
-        );
-      } else if (r.categoryName.isNotEmpty) {
-        _selectedCategory = widget.categories.firstWhere(
-          (c) =>
-              c.name == r.categoryName &&
-              c.isIncome == (r.type == TransactionType.income),
-          orElse: () => widget.categories.firstWhere(
-            (c) => c.isIncome == (r.type == TransactionType.income),
-          ),
-        );
+      try {
+        if (r.categoriaId != null) {
+          _selectedCategory = widget.categories.firstWhere(
+            (c) => c.id == r.categoriaId.toString() && c.isIncome == (r.type == TransactionType.income),
+            orElse: () => throw Exception('Category not found'),
+          );
+        } else if (r.categoryName.isNotEmpty) {
+          _selectedCategory = widget.categories.firstWhere(
+            (c) =>
+                c.name == r.categoryName &&
+                c.isIncome == (r.type == TransactionType.income),
+            orElse: () => throw Exception('Category not found'),
+          );
+        }
+      } catch (e) {
+        // Se não encontrar categoria compatível, deixa null
+        _selectedCategory = null;
       }
     }
   }
@@ -428,53 +358,55 @@ class _RecurrenceFormState extends State<_RecurrenceForm> {
       _isSubmitting = true;
     });
 
-    try {
-      final isEditing = widget.initial != null;
-      final categoriaId = int.parse(_selectedCategory!.id);
-      final tipo = _type == TransactionType.income ? 'RECEITA' : 'DESPESA';
-      final frequencia = _serializeFrequency(_frequency);
+    final recurrenceProvider = context.read<RecurrenceProvider>();
+    final isEditing = widget.initial != null;
+    final categoriaId = int.parse(_selectedCategory!.id);
+    final tipo = _type == TransactionType.income ? 'RECEITA' : 'DESPESA';
+    final frequencia = _serializeFrequency(_frequency);
 
-      if (isEditing) {
-        await widget.repository.updateRecurrence(
-          id: int.parse(widget.initial!.id),
-          valor: _amount,
-          tipo: tipo,
-          categoriaId: categoriaId,
-          descricao: _name,
-          dataInicio: _startDate,
-          frequencia: frequencia,
-          dataFim: _endDate,
-          diaVencimento: _diaVencimento,
-          observacoes: _observacoes,
-          ativa: _isActive,
-        );
-      } else {
-        await widget.repository.createRecurrence(
-          valor: _amount,
-          tipo: tipo,
-          categoriaId: categoriaId,
-          descricao: _name,
-          dataInicio: _startDate,
-          frequencia: frequencia,
-          dataFim: _endDate,
-          diaVencimento: _diaVencimento,
-          observacoes: _observacoes,
-        );
-      }
+    bool success;
+    if (isEditing) {
+      success = await recurrenceProvider.updateRecurrence(
+        id: int.parse(widget.initial!.id),
+        valor: _amount,
+        tipo: tipo,
+        categoriaId: categoriaId,
+        descricao: _name,
+        dataInicio: _startDate,
+        frequencia: frequencia,
+        dataFim: _endDate,
+        diaVencimento: _diaVencimento,
+        observacoes: _observacoes,
+        ativa: _isActive,
+      );
+    } else {
+      success = await recurrenceProvider.createRecurrence(
+        valor: _amount,
+        tipo: tipo,
+        categoriaId: categoriaId,
+        descricao: _name,
+        dataInicio: _startDate,
+        frequencia: frequencia,
+        dataFim: _endDate,
+        diaVencimento: _diaVencimento,
+        observacoes: _observacoes,
+      );
+    }
 
+    setState(() {
+      _isSubmitting = false;
+    });
+
+    if (success) {
       widget.onSubmit();
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Erro ao salvar recorrência: ${e.toString()}'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-      setState(() {
-        _isSubmitting = false;
-      });
+    } else if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+              'Erro ao salvar recorrência: ${recurrenceProvider.errorMessage ?? "Desconhecido"}'),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 

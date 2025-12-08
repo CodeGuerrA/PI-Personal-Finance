@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:sgfi/features/goals/domain/entities/goal_entity.dart';
-import 'package:sgfi/features/goals/domain/repositories/goal_repository.dart';
-import 'package:sgfi/features/goals/data/repositories/goal_repository_impl.dart';
-import 'package:sgfi/features/goals/data/datasources/goal_remote_datasource_impl.dart';
+import 'package:sgfi/features/goals/presentation/providers/goal_provider.dart';
 
 class GoalsScreen extends StatefulWidget {
   const GoalsScreen({super.key});
@@ -12,38 +11,13 @@ class GoalsScreen extends StatefulWidget {
 }
 
 class _GoalsScreenState extends State<GoalsScreen> {
-  late final GoalRepository _goalRepository;
-  List<GoalEntity> _goals = [];
-  bool _isLoading = true;
-  String? _errorMessage;
-
   @override
   void initState() {
     super.initState();
-    _goalRepository = GoalRepositoryImpl(
-      remoteDataSource: GoalRemoteDataSourceImpl(),
-    );
-    _loadGoals();
-  }
-
-  Future<void> _loadGoals() async {
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
+    // Carregar metas do provider
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<GoalProvider>().loadGoals();
     });
-
-    try {
-      final goals = await _goalRepository.getAllGoals();
-      setState(() {
-        _goals = goals;
-        _isLoading = false;
-      });
-    } catch (e) {
-      setState(() {
-        _errorMessage = 'Erro ao carregar metas: ${e.toString()}';
-        _isLoading = false;
-      });
-    }
   }
 
   void _openGoalForm({GoalEntity? editing}) {
@@ -62,11 +36,9 @@ class _GoalsScreenState extends State<GoalsScreen> {
             bottom: MediaQuery.of(ctx).viewInsets.bottom + 16,
           ),
           child: _GoalForm(
-            repository: _goalRepository,
             initial: editing,
             onSubmit: () {
               Navigator.of(ctx).pop();
-              _loadGoals();
             },
           ),
         );
@@ -123,32 +95,23 @@ class _GoalsScreenState extends State<GoalsScreen> {
 
     if (valor == null) return;
 
-    try {
-      final novoValor = goal.currentAmount + valor;
-      await _goalRepository.updateGoalValue(
-        id: int.parse(goal.id),
-        novoValor: novoValor,
+    final goalProvider = context.read<GoalProvider>();
+    final novoValor = goal.currentAmount + valor;
+
+    final success = await goalProvider.updateGoal(
+      id: int.parse(goal.id),
+      valorAtual: novoValor,
+    );
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(success
+              ? 'R\$ ${valor.toStringAsFixed(2)} adicionado à meta "${goal.name}"'
+              : 'Erro ao atualizar meta: ${goalProvider.errorMessage ?? "Desconhecido"}'),
+          backgroundColor: success ? Colors.green : Colors.red,
+        ),
       );
-      _loadGoals();
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'R\$ ${valor.toStringAsFixed(2)} adicionado à meta "${goal.name}"',
-            ),
-            backgroundColor: Colors.green,
-          ),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Erro ao atualizar meta: ${e.toString()}'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
     }
   }
 
@@ -181,25 +144,18 @@ class _GoalsScreenState extends State<GoalsScreen> {
 
     if (!confirm) return;
 
-    try {
-      await _goalRepository.deactivateGoal(int.parse(goal.id));
-      _loadGoals();
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Meta "${goal.name}" removida.'),
-          ),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Erro ao remover meta: ${e.toString()}'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
+    final goalProvider = context.read<GoalProvider>();
+    final success = await goalProvider.deactivateGoal(int.parse(goal.id));
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(success
+              ? 'Meta "${goal.name}" removida.'
+              : 'Erro ao remover meta: ${goalProvider.errorMessage ?? "Desconhecido"}'),
+          backgroundColor: success ? null : Colors.red,
+        ),
+      );
     }
   }
 
@@ -221,35 +177,41 @@ class _GoalsScreenState extends State<GoalsScreen> {
       appBar: AppBar(
         title: const Text('Metas financeiras'),
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : _errorMessage != null
-              ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(Icons.error_outline,
-                          size: 48, color: Colors.red),
-                      const SizedBox(height: 16),
-                      Text(_errorMessage!, textAlign: TextAlign.center),
-                      const SizedBox(height: 16),
-                      ElevatedButton(
-                        onPressed: _loadGoals,
+      body: Consumer<GoalProvider>(
+        builder: (context, goalProvider, child) {
+          if (goalProvider.isLoading) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          if (goalProvider.errorMessage != null) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.error_outline, size: 48, color: Colors.red),
+                  const SizedBox(height: 16),
+                  Text(goalProvider.errorMessage!, textAlign: TextAlign.center),
+                  const SizedBox(height: 16),
+                  ElevatedButton(
+                    onPressed: () => goalProvider.loadGoals(refresh: true),
                         child: const Text('Tentar novamente'),
                       ),
                     ],
                   ),
+                );
+          }
+
+          final goals = goalProvider.goals;
+          return goals.isEmpty
+              ? const Center(
+                  child: Text('Nenhuma meta cadastrada.'),
                 )
-              : _goals.isEmpty
-                  ? const Center(
-                      child: Text('Nenhuma meta cadastrada.'),
-                    )
-                  : ListView.separated(
-                      padding: const EdgeInsets.all(16),
-                      itemCount: _goals.length,
-                      separatorBuilder: (_, __) => const SizedBox(height: 12),
-                      itemBuilder: (context, index) {
-                        final g = _goals[index];
+              : ListView.separated(
+                  padding: const EdgeInsets.all(16),
+                  itemCount: goals.length,
+                  separatorBuilder: (_, __) => const SizedBox(height: 12),
+                  itemBuilder: (context, index) {
+                    final g = goals[index];
                         final progress = g.progress;
                         final color = _statusColor(g);
                         final percent =
@@ -366,7 +328,9 @@ class _GoalsScreenState extends State<GoalsScreen> {
                           ),
                         );
                       },
-                    ),
+                    );
+        },
+      ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _openGoalForm(),
         icon: const Icon(Icons.add),
@@ -377,12 +341,10 @@ class _GoalsScreenState extends State<GoalsScreen> {
 }
 
 class _GoalForm extends StatefulWidget {
-  final GoalRepository repository;
   final GoalEntity? initial;
   final VoidCallback onSubmit;
 
   const _GoalForm({
-    required this.repository,
     required this.onSubmit,
     this.initial,
   });
@@ -425,38 +387,40 @@ class _GoalFormState extends State<_GoalForm> {
       _isSubmitting = true;
     });
 
-    try {
-      final isEditing = widget.initial != null;
+    final goalProvider = context.read<GoalProvider>();
+    final isEditing = widget.initial != null;
 
-      if (isEditing) {
-        await widget.repository.updateGoal(
-          id: int.parse(widget.initial!.id),
-          descricao: _name,
-          valorObjetivo: _targetAmount,
-          valorAtual: _currentAmount,
-        );
-      } else {
-        await widget.repository.createGoal(
-          descricao: _name,
-          valorObjetivo: _targetAmount,
-          categoriaId: 1,
-          tipo: ObjectiveType.metaEconomiaMes,
-        );
-      }
+    bool success;
+    if (isEditing) {
+      success = await goalProvider.updateGoal(
+        id: int.parse(widget.initial!.id),
+        descricao: _name,
+        valorObjetivo: _targetAmount,
+        valorAtual: _currentAmount,
+      );
+    } else {
+      success = await goalProvider.createGoal(
+        categoriaId: 1,
+        descricao: _name,
+        valorObjetivo: _targetAmount,
+        mesAno: '${DateTime.now().year}-${DateTime.now().month.toString().padLeft(2, '0')}',
+        tipo: 'META_ECONOMIA_MES',
+      );
+    }
 
+    setState(() {
+      _isSubmitting = false;
+    });
+
+    if (success) {
       widget.onSubmit();
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Erro ao salvar meta: ${e.toString()}'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-      setState(() {
-        _isSubmitting = false;
-      });
+    } else if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Erro ao salvar meta: ${goalProvider.errorMessage ?? "Desconhecido"}'),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 

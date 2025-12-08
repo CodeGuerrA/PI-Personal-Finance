@@ -19,5 +19,27 @@ abstract class AuthRepository {
   Future<UserEntity> updateCurrentUser({
     required String email,
   });
+
+  Future<void> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  });
+
+  Future<void> setPassword({
+    required int userId,
+    required String newPassword,
+  });
+
+  Future<void> forgotPassword(String email);
+
+  Future<void> resetPassword({
+    required String email,
+    required String code,
+    required String newPassword,
+  });
+
+  Future<void> deleteAccount();
+
+  Future<AuthTokensEntity> refreshToken(String refreshToken);
 }
 

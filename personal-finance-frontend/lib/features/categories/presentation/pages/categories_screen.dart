@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:sgfi/features/categories/domain/entities/category_entity.dart';
-import 'package:sgfi/features/categories/domain/repositories/category_repository.dart';
-import 'package:sgfi/features/categories/data/repositories/category_repository_impl.dart';
-import 'package:sgfi/features/categories/data/datasources/category_remote_datasource_impl.dart';
+import 'package:sgfi/features/categories/presentation/providers/category_provider.dart';
 
 class CategoriesScreen extends StatefulWidget {
   const CategoriesScreen({super.key});
@@ -12,44 +11,21 @@ class CategoriesScreen extends StatefulWidget {
 }
 
 class _CategoriesScreenState extends State<CategoriesScreen> {
-  late final CategoryRepository _categoryRepository;
-  List<CategoryEntity> _categories = [];
-  bool _isLoading = true;
-  String? _errorMessage;
+  // Estado local apenas para filtro (UI state)
   bool? _filterIncome;
 
   @override
   void initState() {
     super.initState();
-    _categoryRepository = CategoryRepositoryImpl(
-      remoteDataSource: CategoryRemoteDataSourceImpl(),
-    );
-    _loadCategories();
-  }
-
-  Future<void> _loadCategories() async {
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
+    // Carregar categorias do provider
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<CategoryProvider>().loadCategories();
     });
-
-    try {
-      final categories = await _categoryRepository.getAllCategories();
-      setState(() {
-        _categories = categories;
-        _isLoading = false;
-      });
-    } catch (e) {
-      setState(() {
-        _errorMessage = 'Erro ao carregar categorias: ${e.toString()}';
-        _isLoading = false;
-      });
-    }
   }
 
-  List<CategoryEntity> get _filteredCategories {
-    if (_filterIncome == null) return _categories;
-    return _categories.where((c) => c.isIncome == _filterIncome).toList();
+  List<CategoryEntity> _getFilteredCategories(List<CategoryEntity> allCategories) {
+    if (_filterIncome == null) return allCategories;
+    return allCategories.where((c) => c.isIncome == _filterIncome).toList();
   }
 
   void _setFilter(bool? value) {
@@ -138,28 +114,28 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
 
                 Navigator.of(ctx).pop();
 
-                try {
-                  if (isEditing) {
-                    await _categoryRepository.updateCategory(
-                      id: int.parse(editing.id),
-                      nome: name,
-                    );
-                  } else {
-                    await _categoryRepository.createCategory(
-                      nome: name,
-                      tipo: isIncome ? 'receita' : 'despesa',
-                    );
-                  }
-                  _loadCategories();
-                } catch (e) {
-                  if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('Erro ao salvar categoria: ${e.toString()}'),
-                        backgroundColor: Colors.red,
-                      ),
-                    );
-                  }
+                final categoryProvider = context.read<CategoryProvider>();
+                bool success;
+
+                if (isEditing) {
+                  success = await categoryProvider.updateCategory(
+                    id: int.parse(editing.id),
+                    nome: name,
+                  );
+                } else {
+                  success = await categoryProvider.createCategory(
+                    nome: name,
+                    tipo: isIncome ? 'receita' : 'despesa',
+                  );
+                }
+
+                if (!success && mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Erro ao salvar categoria: ${categoryProvider.errorMessage ?? "Desconhecido"}'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
                 }
               },
               child: Text(isEditing ? 'Salvar' : 'Adicionar'),
@@ -210,55 +186,53 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
 
     if (!confirm) return;
 
-    try {
-      await _categoryRepository.deleteCategory(int.parse(category.id));
-      _loadCategories();
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Categoria "${category.name}" removida.'),
-          ),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Erro ao remover categoria: ${e.toString()}'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
+    final categoryProvider = context.read<CategoryProvider>();
+    final success = await categoryProvider.deleteCategory(int.parse(category.id));
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(success
+              ? 'Categoria "${category.name}" removida.'
+              : 'Erro ao remover categoria: ${categoryProvider.errorMessage ?? "Desconhecido"}'),
+          backgroundColor: success ? null : Colors.red,
+        ),
+      );
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final categories = _filteredCategories;
-
     return Scaffold(
       appBar: AppBar(
         title: const Text('Categorias'),
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : _errorMessage != null
-              ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(Icons.error_outline, size: 48, color: Colors.red),
-                      const SizedBox(height: 16),
-                      Text(_errorMessage!, textAlign: TextAlign.center),
-                      const SizedBox(height: 16),
-                      ElevatedButton(
-                        onPressed: _loadCategories,
-                        child: const Text('Tentar novamente'),
-                      ),
-                    ],
+      body: Consumer<CategoryProvider>(
+        builder: (context, categoryProvider, child) {
+          if (categoryProvider.isLoading) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          if (categoryProvider.errorMessage != null) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.error_outline, size: 48, color: Colors.red),
+                  const SizedBox(height: 16),
+                  Text(categoryProvider.errorMessage!, textAlign: TextAlign.center),
+                  const SizedBox(height: 16),
+                  ElevatedButton(
+                    onPressed: () => categoryProvider.loadCategories(refresh: true),
+                    child: const Text('Tentar novamente'),
                   ),
-                )
-              : Column(
+                ],
+              ),
+            );
+          }
+
+          final categories = _getFilteredCategories(categoryProvider.categories);
+          return Column(
         children: [
           Padding(
             padding:
@@ -305,7 +279,7 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
 
                       return ListTile(
                         leading: CircleAvatar(
-                          backgroundColor: color.withOpacity(0.1),
+                          backgroundColor: color.withValues(alpha: 0.1),
                           child: Icon(
                             icon,
                             color: color,
@@ -346,6 +320,8 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
                   ),
           ),
         ],
+      );
+        },
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _openCategoryDialog(),

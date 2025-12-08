@@ -1,12 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:sgfi/features/transactions/domain/entities/transaction_entity.dart';
-import 'package:sgfi/features/transactions/domain/repositories/transaction_repository.dart';
-import 'package:sgfi/features/transactions/data/repositories/transaction_repository_impl.dart';
-import 'package:sgfi/features/transactions/data/datasources/transaction_remote_datasource_impl.dart';
+import 'package:sgfi/features/transactions/presentation/providers/transaction_provider.dart';
 import 'package:sgfi/features/categories/domain/entities/category_entity.dart';
-import 'package:sgfi/features/categories/domain/repositories/category_repository.dart';
-import 'package:sgfi/features/categories/data/repositories/category_repository_impl.dart';
-import 'package:sgfi/features/categories/data/datasources/category_remote_datasource_impl.dart';
+import 'package:sgfi/features/categories/presentation/providers/category_provider.dart';
 import 'package:sgfi/core/routes/app_routes.dart';
 
 class TransactionsListScreen extends StatefulWidget {
@@ -18,13 +15,7 @@ class TransactionsListScreen extends StatefulWidget {
 }
 
 class _TransactionsListScreenState extends State<TransactionsListScreen> {
-  late final TransactionRepository _transactionRepository;
-  late final CategoryRepository _categoryRepository;
-  List<TransactionEntity> _allTransactions = [];
-  List<CategoryEntity> _allCategories = [];
-  bool _isLoading = true;
-  String? _errorMessage;
-
+  // Estado local para filtros (UI state)
   TransactionType? _filterType;
   String _searchText = '';
   DateTimeRange? _filterRange;
@@ -32,38 +23,20 @@ class _TransactionsListScreenState extends State<TransactionsListScreen> {
   @override
   void initState() {
     super.initState();
-    _transactionRepository = TransactionRepositoryImpl(
-      remoteDataSource: TransactionRemoteDataSourceImpl(),
-    );
-    _categoryRepository = CategoryRepositoryImpl(
-      remoteDataSource: CategoryRemoteDataSourceImpl(),
-    );
-    _loadData();
+    // Carregar dados dos providers
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadData();
+    });
   }
 
   Future<void> _loadData() async {
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
-    });
+    final transactionProvider = context.read<TransactionProvider>();
+    final categoryProvider = context.read<CategoryProvider>();
 
-    try {
-      final results = await Future.wait([
-        _transactionRepository.getAllTransactions(),
-        _categoryRepository.getAllCategories(),
-      ]);
-
-      setState(() {
-        _allTransactions = results[0] as List<TransactionEntity>;
-        _allCategories = results[1] as List<CategoryEntity>;
-        _isLoading = false;
-      });
-    } catch (e) {
-      setState(() {
-        _errorMessage = 'Erro ao carregar dados: ${e.toString()}';
-        _isLoading = false;
-      });
-    }
+    await Future.wait([
+      transactionProvider.loadTransactions(),
+      categoryProvider.loadCategories(),
+    ]);
   }
 
   Future<void> _pickDateRange() async {
@@ -110,8 +83,8 @@ class _TransactionsListScreenState extends State<TransactionsListScreen> {
     return '${fmt(start)} até ${fmt(end)}';
   }
 
-  List<TransactionEntity> get _filteredTransactions {
-    return _allTransactions.where((t) {
+  List<TransactionEntity> _getFilteredTransactions(List<TransactionEntity> allTransactions) {
+    return allTransactions.where((t) {
       // 1) filtro por tipo
       final matchesType =
           _filterType == null ? true : t.type == _filterType;
@@ -144,25 +117,26 @@ class _TransactionsListScreenState extends State<TransactionsListScreen> {
   }
 
   void _openAddTransactionSheet() {
+    final categoryProvider = context.read<CategoryProvider>();
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      builder: (context) {
+      builder: (ctx) {
         return Padding(
           padding: EdgeInsets.only(
             left: 16,
             right: 16,
             top: 16,
-            bottom: MediaQuery.of(context).viewInsets.bottom + 16,
+            bottom: MediaQuery.of(ctx).viewInsets.bottom + 16,
           ),
           child: _AddTransactionForm(
-            repository: _transactionRepository,
-            categories: _allCategories,
+            categories: categoryProvider.categories,
             onSubmit: () {
-              Navigator.of(context).pop();
+              Navigator.of(ctx).pop();
               _loadData();
             },
           ),
@@ -172,25 +146,19 @@ class _TransactionsListScreenState extends State<TransactionsListScreen> {
   }
 
   Future<void> _deleteTransaction(TransactionEntity t) async {
-    try {
-      await _transactionRepository.deleteTransaction(int.parse(t.id));
-      _loadData();
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Transação "${t.description}" removida.'),
-          ),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Erro ao remover: ${e.toString()}'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
+    final transactionProvider = context.read<TransactionProvider>();
+
+    final success = await transactionProvider.deleteTransaction(int.parse(t.id));
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(success
+              ? 'Transação "${t.description}" removida.'
+              : 'Erro ao remover: ${transactionProvider.errorMessage ?? "Desconhecido"}'),
+          backgroundColor: success ? null : Colors.red,
+        ),
+      );
     }
   }
 
@@ -215,28 +183,36 @@ class _TransactionsListScreenState extends State<TransactionsListScreen> {
           ),
         ],
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : _errorMessage != null
-              ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(Icons.error_outline, size: 48, color: Colors.red),
-                      const SizedBox(height: 16),
-                      Text(_errorMessage!, textAlign: TextAlign.center),
-                      const SizedBox(height: 16),
-                      ElevatedButton(
-                        onPressed: _loadData,
-                        child: const Text('Tentar novamente'),
-                      ),
-                    ],
+      body: Consumer2<TransactionProvider, CategoryProvider>(
+        builder: (context, transactionProvider, categoryProvider, child) {
+          final isLoading = transactionProvider.isLoading || categoryProvider.isLoading;
+          final hasError = transactionProvider.errorMessage != null || categoryProvider.errorMessage != null;
+          final errorMessage = transactionProvider.errorMessage ?? categoryProvider.errorMessage;
+
+          if (isLoading) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          if (hasError) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.error_outline, size: 48, color: Colors.red),
+                  const SizedBox(height: 16),
+                  Text(errorMessage!, textAlign: TextAlign.center),
+                  const SizedBox(height: 16),
+                  ElevatedButton(
+                    onPressed: _loadData,
+                    child: const Text('Tentar novamente'),
                   ),
-                )
-              : Builder(
-                  builder: (context) {
-                    final transactions = _filteredTransactions;
-                    return Column(
+                ],
+              ),
+            );
+          }
+
+          final transactions = _getFilteredTransactions(transactionProvider.transactions);
+          return Column(
         children: [
           // Filtro + busca
           Padding(
@@ -375,8 +351,7 @@ class _TransactionsListScreenState extends State<TransactionsListScreen> {
                         },
                         child: ListTile(
                           leading: CircleAvatar(
-                            // ignore: deprecated_member_use
-                            backgroundColor: color.withOpacity(0.1),
+                            backgroundColor: color.withValues(alpha: 0.1),
                             child: Icon(
                               isIncome
                                   ? Icons.arrow_upward
@@ -418,8 +393,7 @@ class _TransactionsListScreenState extends State<TransactionsListScreen> {
                                         16,
                                   ),
                                   child: _AddTransactionForm(
-                                    repository: _transactionRepository,
-                                    categories: _allCategories,
+                                    categories: categoryProvider.categories,
                                     initial: t,
                                     onSubmit: () {
                                       Navigator.of(ctx).pop();
@@ -437,8 +411,8 @@ class _TransactionsListScreenState extends State<TransactionsListScreen> {
           ),
         ],
       );
-                  },
-                ),
+        },
+      ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _openAddTransactionSheet,
         icon: const Icon(Icons.add),
@@ -469,8 +443,7 @@ class _FilterChip extends StatelessWidget {
       label: Text(label),
       selected: selected,
       onSelected: (_) => onSelected(),
-      // ignore: deprecated_member_use
-      selectedColor: themeColor.withOpacity(0.15),
+      selectedColor: themeColor.withValues(alpha: 0.15),
       labelStyle: TextStyle(
         color: selected ? themeColor : Colors.black87,
       ),
@@ -482,13 +455,11 @@ class _FilterChip extends StatelessWidget {
 }
 
 class _AddTransactionForm extends StatefulWidget {
-  final TransactionRepository repository;
   final VoidCallback onSubmit;
   final TransactionEntity? initial;
   final List<CategoryEntity> categories;
 
   const _AddTransactionForm({
-    required this.repository,
     required this.onSubmit,
     this.initial,
     required this.categories,
@@ -524,22 +495,23 @@ class _AddTransactionFormState extends State<_AddTransactionForm> {
       _observacoes = t.observacoes;
 
       // acha categoria correspondente pelo ID ou nome
-      if (t.categoriaId != null) {
-        _selectedCategory = widget.categories.firstWhere(
-          (c) => c.id == t.categoriaId.toString(),
-          orElse: () => widget.categories.firstWhere(
-            (c) => c.isIncome == (t.type == TransactionType.income),
-          ),
-        );
-      } else {
-        _selectedCategory = widget.categories.firstWhere(
-          (c) =>
-              c.name == t.category &&
-              c.isIncome == (t.type == TransactionType.income),
-          orElse: () => widget.categories.firstWhere(
-            (c) => c.isIncome == (t.type == TransactionType.income),
-          ),
-        );
+      try {
+        if (t.categoriaId != null) {
+          _selectedCategory = widget.categories.firstWhere(
+            (c) => c.id == t.categoriaId.toString() && c.isIncome == (t.type == TransactionType.income),
+            orElse: () => throw Exception('Category not found'),
+          );
+        } else {
+          _selectedCategory = widget.categories.firstWhere(
+            (c) =>
+                c.name == t.category &&
+                c.isIncome == (t.type == TransactionType.income),
+            orElse: () => throw Exception('Category not found'),
+          );
+        }
+      } catch (e) {
+        // Se não encontrar categoria compatível, deixa null
+        _selectedCategory = null;
       }
     }
   }
@@ -580,47 +552,48 @@ class _AddTransactionFormState extends State<_AddTransactionForm> {
       _isSubmitting = true;
     });
 
-    try {
-      final isEditing = widget.initial != null;
-      final categoriaId = int.parse(_selectedCategory!.id);
-      final tipo = _type == TransactionType.income ? 'RECEITA' : 'DESPESA';
+    final transactionProvider = context.read<TransactionProvider>();
+    final isEditing = widget.initial != null;
+    final categoriaId = int.parse(_selectedCategory!.id);
+    final tipo = _type == TransactionType.income ? 'RECEITA' : 'DESPESA';
 
-      if (isEditing) {
-        await widget.repository.updateTransaction(
-          id: int.parse(widget.initial!.id),
-          valor: _amount,
-          tipo: tipo,
-          metodoPagamento: _paymentMethod,
-          categoriaId: categoriaId,
-          descricao: _description,
-          data: _selectedDate,
-          observacoes: _observacoes,
-        );
-      } else {
-        await widget.repository.createTransaction(
-          valor: _amount,
-          tipo: tipo,
-          metodoPagamento: _paymentMethod,
-          categoriaId: categoriaId,
-          descricao: _description,
-          data: _selectedDate,
-          observacoes: _observacoes,
-        );
-      }
+    bool success;
+    if (isEditing) {
+      success = await transactionProvider.updateTransaction(
+        id: int.parse(widget.initial!.id),
+        valor: _amount,
+        tipo: tipo,
+        metodoPagamento: _paymentMethod,
+        categoriaId: categoriaId,
+        descricao: _description,
+        data: _selectedDate,
+        observacoes: _observacoes,
+      );
+    } else {
+      success = await transactionProvider.createTransaction(
+        valor: _amount,
+        tipo: tipo,
+        metodoPagamento: _paymentMethod,
+        categoriaId: categoriaId,
+        descricao: _description,
+        data: _selectedDate,
+        observacoes: _observacoes,
+      );
+    }
 
+    setState(() {
+      _isSubmitting = false;
+    });
+
+    if (success) {
       widget.onSubmit();
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Erro ao salvar transação: ${e.toString()}'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-      setState(() {
-        _isSubmitting = false;
-      });
+    } else if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Erro ao salvar transação: ${transactionProvider.errorMessage ?? "Desconhecido"}'),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 

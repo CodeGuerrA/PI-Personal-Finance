@@ -1,5 +1,6 @@
 package com.personalFinance.personal_finance.user.api.controller;
 
+import com.personalFinance.personal_finance.user.api.dto.request.FirstAccessRequestDTO;
 import com.personalFinance.personal_finance.user.api.dto.request.ForgotPasswordRequestDTO;
 import com.personalFinance.personal_finance.user.api.dto.request.ResetPasswordWithCodeRequestDTO;
 import com.personalFinance.personal_finance.user.api.dto.request.UserLoginRequestDTO;
@@ -52,5 +53,13 @@ public class AuthController {
         authService.resetPasswordWithCode(dto);
         log.info("Senha redefinida com sucesso para o email: {}", dto.getEmail());
         return ResponseEntity.ok("Senha redefinida com sucesso");
+    }
+
+    @PostMapping("/first-access")
+    public ResponseEntity<String> firstAccess(@Valid @RequestBody FirstAccessRequestDTO dto) {
+        log.info("Tentativa de primeiro acesso para o usuário: {}", dto.getUsername());
+        authService.handleFirstAccess(dto);
+        log.info("Senha permanente definida com sucesso para o usuário: {}", dto.getUsername());
+        return ResponseEntity.ok("Senha definida com sucesso. Faça login com sua nova senha.");
     }
 }

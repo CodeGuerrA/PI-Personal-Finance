@@ -1,16 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:sgfi/core/routes/app_routes.dart';
 import 'package:sgfi/core/validators/form_validators.dart';
-
-// Imports para o modo backend (no futuro)
-import 'package:sgfi/features/auth/data/datasources/auth_remote_datasource_impl.dart';
-import 'package:sgfi/features/auth/data/repositories/auth_repository_impl.dart';
-import 'package:sgfi/features/auth/domain/usecases/login_usecase.dart';
-
-/// ATENÇÃO BACKEND:
-/// - Em desenvolvimento: pode mudar para true para usar a API real.
-/// - Em demo local: deixe false para usar admin / 123456.
-const bool kUseBackendAuth = true;
+import 'package:sgfi/features/auth/presentation/providers/auth_provider.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -37,44 +29,34 @@ class _LoginScreenState extends State<LoginScreen> {
     });
 
     try {
-      if (!kUseBackendAuth) {
-        // ============================
-        // MODO DEMO (SEM BACKEND)
-        // ============================
-        if (_username == 'admin' && _password == '123456') {
-          if (!mounted) return;
-          Navigator.of(context).pushReplacementNamed(AppRoutes.home);
-        } else {
-          setState(() {
-            _errorMessage =
-                'Usuário ou senha inválidos.\nUse admin / 123456 para acessar o modo demonstração.';
-          });
-        }
-      } else {
-        // ============================
-        // MODO BACKEND (COM API)
-        // ============================
-        final dataSource = AuthRemoteDataSourceImpl();
-        final repository = AuthRepositoryImpl(dataSource);
-        final loginUseCase = LoginUseCase(repository);
+      final authProvider = context.read<AuthProvider>();
 
-        final tokens = await loginUseCase(
-          LoginParams(
-            username: _username,
-            password: _password,
-          ),
-        );
+      final success = await authProvider.login(_username, _password);
 
-        if (!mounted) return;
+      if (!mounted) return;
 
-        if (tokens.requiresPasswordChange) {
+      if (success) {
+        // Debug logs
+        print('LoginScreen - Login bem-sucedido!');
+        print('LoginScreen - Verificando requiresPasswordChange...');
+        print('LoginScreen - authProvider.requiresPasswordChange = ${authProvider.requiresPasswordChange}');
+
+        // Verificar se precisa trocar senha
+        if (authProvider.requiresPasswordChange) {
+          print('LoginScreen - Redirecionando para firstPassword');
           Navigator.of(context).pushReplacementNamed(
             AppRoutes.firstPassword,
-            arguments: tokens.username,
+            arguments: _username,
           );
         } else {
+          print('LoginScreen - Redirecionando para home');
           Navigator.of(context).pushReplacementNamed(AppRoutes.home);
         }
+      } else {
+        setState(() {
+          _errorMessage = authProvider.errorMessage ??
+              'Erro ao fazer login. Verifique suas credenciais.';
+        });
       }
     } catch (e) {
       setState(() {
@@ -107,15 +89,6 @@ class _LoginScreenState extends State<LoginScreen> {
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  const SizedBox(height: 4),
-                  const Text(
-                    'Modo demonstração: use admin / 123456',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
                   const SizedBox(height: 24),
 
                   if (_errorMessage != null) ...[
@@ -130,7 +103,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   TextFormField(
                     decoration: const InputDecoration(
                       labelText: 'Usuário',
-                      prefixIcon: Icon(Icons.person_outline),
+                      prefixIcon: const Icon(Icons.person_outline),
                     ),
                     validator: (value) =>
                         FormValidators.username(value, fieldLabel: 'o usuário'),
@@ -140,7 +113,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   TextFormField(
                     decoration: const InputDecoration(
                       labelText: 'Senha',
-                      prefixIcon: Icon(Icons.lock_outline),
+                      prefixIcon: const Icon(Icons.lock_outline),
                     ),
                     obscureText: true,
                     validator: (value) =>
@@ -175,6 +148,13 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ),
                   const SizedBox(height: 12),
+                  TextButton(
+                    onPressed: () {
+                      Navigator.of(context).pushNamed(AppRoutes.firstPassword);
+                    },
+                    child: const Text('Primeiro acesso (senha temporária)'),
+                  ),
+                  const SizedBox(height: 4),
                   TextButton(
                     onPressed: () {
                       Navigator.of(context).pushNamed(AppRoutes.register);

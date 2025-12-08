@@ -29,11 +29,16 @@ abstract class AuthRemoteDataSource {
     required String newPassword,
   });
 
+  Future<void> setPassword({
+    required int userId,
+    required String newPassword,
+  });
+
   Future<void> deleteCurrentUser();
 
-  Future<void> forgotPassword({
-    required String email,
-  });
+  Future<void> deleteAccount();
+
+  Future<void> forgotPassword(String email);
 
   Future<void> resetPassword({
     required String email,
