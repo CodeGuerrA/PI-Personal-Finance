@@ -446,10 +446,15 @@ class _FilterChip extends StatelessWidget {
       onSelected: (_) => onSelected(),
       selectedColor: themeColor.withValues(alpha: 0.15),
       labelStyle: TextStyle(
-        color: selected ? themeColor : Colors.black87,
+        color: selected
+            ? themeColor
+            : Theme.of(context).colorScheme.onSurface,
+        fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
       ),
       side: BorderSide(
-        color: selected ? themeColor : Colors.grey.shade300,
+        color: selected
+            ? themeColor
+            : Theme.of(context).colorScheme.outline,
       ),
     );
   }

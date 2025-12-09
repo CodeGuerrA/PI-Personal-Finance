@@ -392,7 +392,10 @@ class _SummaryCard extends StatelessWidget {
           children: [
             Text(
               title,
-              style: const TextStyle(fontSize: 12, color: Colors.grey),
+              style: TextStyle(
+                fontSize: 12,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
             ),
             const SizedBox(height: 4),
             Text(
@@ -431,10 +434,15 @@ class _FilterChip extends StatelessWidget {
       onSelected: (_) => onSelected(),
       selectedColor: themeColor.withValues(alpha: 0.15),
       labelStyle: TextStyle(
-        color: selected ? themeColor : Colors.black87,
+        color: selected
+            ? themeColor
+            : Theme.of(context).colorScheme.onSurface,
+        fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
       ),
       side: BorderSide(
-        color: selected ? themeColor : Colors.grey.shade300,
+        color: selected
+            ? themeColor
+            : Theme.of(context).colorScheme.outline,
       ),
     );
   }

@@ -587,32 +587,57 @@ class _RecurrenceFormState extends State<_RecurrenceForm> {
             },
           ),
           const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: Text('Início: ${_formatDate(_startDate)}'),
+          InkWell(
+            onTap: _pickStartDate,
+            borderRadius: BorderRadius.circular(8),
+            child: InputDecorator(
+              decoration: const InputDecoration(
+                labelText: 'Data de início',
+                prefixIcon: Icon(Icons.calendar_today),
+                suffixIcon: Icon(Icons.edit_calendar),
               ),
-              TextButton(
-                onPressed: _pickStartDate,
-                child: const Text('Selecionar início'),
-              ),
-            ],
+              child: Text(_formatDate(_startDate)),
+            ),
           ),
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  _endDate == null
-                      ? 'Sem data final'
-                      : 'Fim: ${_formatDate(_endDate!)}',
+          const SizedBox(height: 12),
+          InkWell(
+            onTap: _pickEndDate,
+            borderRadius: BorderRadius.circular(8),
+            child: InputDecorator(
+              decoration: const InputDecoration(
+                labelText: 'Data de fim (opcional)',
+                prefixIcon: Icon(Icons.event),
+                suffixIcon: Icon(Icons.edit_calendar),
+                helperText: 'Deixe em branco para recorrência sem data final',
+              ),
+              child: Text(
+                _endDate == null ? 'Sem data final' : _formatDate(_endDate!),
+                style: TextStyle(
+                  color: _endDate == null
+                      ? Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5)
+                      : Theme.of(context).colorScheme.onSurface,
                 ),
               ),
-              TextButton(
-                onPressed: _pickEndDate,
-                child: const Text('Selecionar fim'),
-              ),
-            ],
+            ),
           ),
+          if (_endDate != null) ...[
+            const SizedBox(height: 8),
+            Align(
+              alignment: Alignment.centerRight,
+              child: TextButton.icon(
+                onPressed: () {
+                  setState(() {
+                    _endDate = null;
+                  });
+                },
+                icon: const Icon(Icons.clear, size: 16),
+                label: const Text('Remover data final'),
+                style: TextButton.styleFrom(
+                  foregroundColor: Colors.grey,
+                ),
+              ),
+            ),
+          ],
           const SizedBox(height: 12),
           TextFormField(
             initialValue: _observacoes,

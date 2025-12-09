@@ -33,6 +33,10 @@ public interface RecurringTransactionRepository extends JpaRepository<RecurringT
     @Query("SELECT r FROM RecurringTransaction r WHERE r.usuario.id = :usuarioId AND r.dataFim IS NULL")
     List<RecurringTransaction> findByUsuarioIdAndDataFimIsNull(@Param("usuarioId") Long usuarioId);
 
+    @Query("SELECT r FROM RecurringTransaction r WHERE r.usuario.id = :usuarioId AND r.ativa = :ativa")
+    List<RecurringTransaction> findByUsuarioIdAndAtiva(@Param("usuarioId") Long usuarioId,
+                                                        @Param("ativa") Boolean ativa);
+
     /**
      * Busca recorrências que precisam executar HOJE.
      * A regra no domínio será criada depois (service).

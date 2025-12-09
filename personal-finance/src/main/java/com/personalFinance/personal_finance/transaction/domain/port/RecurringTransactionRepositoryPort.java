@@ -50,6 +50,11 @@ public interface RecurringTransactionRepositoryPort {
     List<RecurringTransaction> findByUsuarioIdAndDataFimIsNull(Long usuarioId);
 
     /**
+     * Filtra por recorrências ativas (ativa = true).
+     */
+    List<RecurringTransaction> findByUsuarioIdAndAtiva(Long usuarioId, Boolean ativa);
+
+    /**
      * Deleta.
      */
     void delete(RecurringTransaction recurringTransaction);

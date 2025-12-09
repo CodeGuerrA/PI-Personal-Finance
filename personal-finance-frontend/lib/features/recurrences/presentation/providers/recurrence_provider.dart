@@ -140,6 +140,7 @@ class RecurrenceProvider extends ChangeNotifier {
     required String descricao,
     required DateTime dataInicio,
     required String frequencia,
+    DateTime? dataFim,
     int? diaVencimento,
     String? observacoes,
   }) async {
@@ -151,6 +152,7 @@ class RecurrenceProvider extends ChangeNotifier {
         descricao: descricao,
         dataInicio: dataInicio,
         frequencia: frequencia,
+        dataFim: dataFim,
         diaVencimento: diaVencimento,
         observacoes: observacoes,
       );
@@ -173,6 +175,7 @@ class RecurrenceProvider extends ChangeNotifier {
     required String descricao,
     required DateTime dataInicio,
     required String frequencia,
+    DateTime? dataFim,
     int? diaVencimento,
     String? observacoes,
     bool? ativa,
@@ -186,6 +189,7 @@ class RecurrenceProvider extends ChangeNotifier {
         descricao: descricao,
         dataInicio: dataInicio,
         frequencia: frequencia,
+        dataFim: dataFim,
         diaVencimento: diaVencimento,
         observacoes: observacoes,
         ativa: ativa,

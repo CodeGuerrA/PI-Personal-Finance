@@ -59,6 +59,11 @@ public class RecurringTransactionRepositoryAdapter implements RecurringTransacti
     }
 
     @Override
+    public List<RecurringTransaction> findByUsuarioIdAndAtiva(Long usuarioId, Boolean ativa) {
+        return repository.findByUsuarioIdAndAtiva(usuarioId, ativa);
+    }
+
+    @Override
     public boolean existsById(Long id) {
         return repository.existsById(id);
     }

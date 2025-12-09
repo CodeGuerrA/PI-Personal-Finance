@@ -18,6 +18,8 @@ class _DefinePasswordScreenState extends State<DefinePasswordScreen> {
   String _confirmPassword = '';
   bool _isLoading = false;
   String? _errorMessage;
+  bool _obscureNewPassword = true;
+  bool _obscureConfirmPassword = true;
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
@@ -115,22 +117,46 @@ class _DefinePasswordScreenState extends State<DefinePasswordScreen> {
                     const SizedBox(height: 16),
                   ],
                   TextFormField(
-                    decoration: const InputDecoration(
+                    decoration: InputDecoration(
                       labelText: 'Nova senha',
-                      prefixIcon: Icon(Icons.lock_reset),
+                      prefixIcon: const Icon(Icons.lock_reset),
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          _obscureNewPassword
+                              ? Icons.visibility
+                              : Icons.visibility_off,
+                        ),
+                        onPressed: () {
+                          setState(() {
+                            _obscureNewPassword = !_obscureNewPassword;
+                          });
+                        },
+                      ),
                     ),
-                    obscureText: true,
+                    obscureText: _obscureNewPassword,
                     validator: (value) =>
                         FormValidators.password(value, minLength: 8),
                     onSaved: (value) => _newPassword = value ?? '',
                   ),
                   const SizedBox(height: 16),
                   TextFormField(
-                    decoration: const InputDecoration(
+                    decoration: InputDecoration(
                       labelText: 'Confirmar nova senha',
-                      prefixIcon: Icon(Icons.lock_outline),
+                      prefixIcon: const Icon(Icons.lock_outline),
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          _obscureConfirmPassword
+                              ? Icons.visibility
+                              : Icons.visibility_off,
+                        ),
+                        onPressed: () {
+                          setState(() {
+                            _obscureConfirmPassword = !_obscureConfirmPassword;
+                          });
+                        },
+                      ),
                     ),
-                    obscureText: true,
+                    obscureText: _obscureConfirmPassword,
                     validator: (value) =>
                         FormValidators.password(value, minLength: 8),
                     onSaved: (value) => _confirmPassword = value ?? '',

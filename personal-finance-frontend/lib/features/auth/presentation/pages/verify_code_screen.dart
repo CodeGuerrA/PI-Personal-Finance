@@ -108,7 +108,7 @@ class _VerifyCodeScreenState extends State<VerifyCodeScreen> {
                 Text(
                   'Verifique sua caixa de entrada e spam.',
                   style: theme.textTheme.bodySmall?.copyWith(
-                    color: Colors.grey,
+                    color: theme.colorScheme.onSurfaceVariant,
                   ),
                   textAlign: TextAlign.center,
                 ),

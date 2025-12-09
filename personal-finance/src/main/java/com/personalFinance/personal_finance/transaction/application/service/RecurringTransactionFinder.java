@@ -143,9 +143,9 @@ public class RecurringTransactionFinder {
         User user = userRepository.findByKeycloakId(keycloakId)
                 .orElseThrow(() -> new IllegalArgumentException("Usuário não encontrado"));
 
-        // Buscar transações recorrentes ativas (sem data fim)
+        // Buscar transações recorrentes ativas (ativa = true)
         List<RecurringTransaction> recurringTransactions =
-                recurringTransactionRepository.findByUsuarioIdAndDataFimIsNull(user.getId());
+                recurringTransactionRepository.findByUsuarioIdAndAtiva(user.getId(), true);
 
         log.info("Encontradas {} transações recorrentes ativas para o usuário {}",
                 recurringTransactions.size(), keycloakId);

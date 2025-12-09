@@ -234,7 +234,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             Text(
                               _user?.email ?? '',
                               style: theme.textTheme.bodyMedium?.copyWith(
-                                color: Colors.grey[700],
+                                color: theme.colorScheme.onSurfaceVariant,
                               ),
                               textAlign: TextAlign.center,
                             ),
@@ -242,7 +242,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             Text(
                               '@${_user?.userName ?? ''}',
                               style: theme.textTheme.bodySmall?.copyWith(
-                                color: Colors.grey[600],
+                                color: theme.colorScheme.onSurfaceVariant,
                                 fontStyle: FontStyle.italic,
                               ),
                               textAlign: TextAlign.center,
@@ -258,11 +258,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         icon: Icons.person_outline,
                         title: 'Nome completo',
                         subtitle: _user?.fullName ?? '',
-                        trailing: const Text(
-                          'Não editável',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey,
+                        trailing: Builder(
+                          builder: (context) => Text(
+                            'Não editável',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Theme.of(context).colorScheme.onSurfaceVariant,
+                            ),
                           ),
                         ),
                         onTap: null,
@@ -272,11 +274,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         icon: Icons.alternate_email,
                         title: 'Nome de usuário',
                         subtitle: '@${_user?.userName ?? ''}',
-                        trailing: const Text(
-                          'Não editável',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey,
+                        trailing: Builder(
+                          builder: (context) => Text(
+                            'Não editável',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Theme.of(context).colorScheme.onSurfaceVariant,
+                            ),
                           ),
                         ),
                         onTap: null,
