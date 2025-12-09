@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:sgfi/core/routes/app_routes.dart';
 import 'package:sgfi/features/auth/domain/entities/user_entity.dart';
 import 'package:sgfi/features/auth/domain/repositories/auth_repository.dart';
 import 'package:sgfi/features/auth/data/repositories/auth_repository_impl.dart';
 import 'package:sgfi/features/auth/data/datasources/auth_remote_datasource_impl.dart';
+import 'package:sgfi/core/providers/theme_provider.dart';
+import 'package:sgfi/core/theme/module_icons.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -288,6 +291,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
                       const Divider(),
 
+                      // THEME SWITCHER
+                      Consumer<ThemeProvider>(
+                        builder: (context, themeProvider, _) {
+                          return _ThemeOption(
+                            currentMode: themeProvider.themeMode,
+                            onModeChanged: (mode) {
+                              themeProvider.setThemeMode(mode);
+                            },
+                          );
+                        },
+                      ),
+
+                      const Divider(),
+
                       _ProfileOption(
                         icon: Icons.lock_outline,
                         title: 'Alterar senha',
@@ -378,6 +395,172 @@ class _ProfileOption extends StatelessWidget {
               : null),
       onTap: onTap,
       enabled: onTap != null,
+    );
+  }
+}
+
+/// Premium theme switcher widget
+class _ThemeOption extends StatelessWidget {
+  final AppThemeMode currentMode;
+  final ValueChanged<AppThemeMode> onModeChanged;
+
+  const _ThemeOption({
+    required this.currentMode,
+    required this.onModeChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                Icons.palette_outlined,
+                size: 28,
+                color: ModuleIcons.profileColor,
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Tema do aplicativo',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w500,
+                        fontSize: 16,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Escolha entre claro, escuro ou automático',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: theme.textTheme.bodySmall?.color,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          // Theme mode selector with chips
+          Row(
+            children: [
+              const SizedBox(width: 44), // Align with text
+              Expanded(
+                child: Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    _ThemeChip(
+                      label: 'Claro',
+                      icon: Icons.light_mode,
+                      isSelected: currentMode == AppThemeMode.light,
+                      onSelected: () => onModeChanged(AppThemeMode.light),
+                      isDarkMode: isDark,
+                    ),
+                    _ThemeChip(
+                      label: 'Escuro',
+                      icon: Icons.dark_mode,
+                      isSelected: currentMode == AppThemeMode.dark,
+                      onSelected: () => onModeChanged(AppThemeMode.dark),
+                      isDarkMode: isDark,
+                    ),
+                    _ThemeChip(
+                      label: 'Sistema',
+                      icon: Icons.brightness_auto,
+                      isSelected: currentMode == AppThemeMode.system,
+                      onSelected: () => onModeChanged(AppThemeMode.system),
+                      isDarkMode: isDark,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Individual theme selection chip
+class _ThemeChip extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  final bool isSelected;
+  final VoidCallback onSelected;
+  final bool isDarkMode;
+
+  const _ThemeChip({
+    required this.label,
+    required this.icon,
+    required this.isSelected,
+    required this.onSelected,
+    required this.isDarkMode,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Material(
+      color: isSelected
+          ? ModuleIcons.profileColor.withValues(alpha: 0.2)
+          : (isDarkMode
+              ? Colors.white.withValues(alpha: 0.05)
+              : Colors.black.withValues(alpha: 0.05)),
+      borderRadius: BorderRadius.circular(12),
+      child: InkWell(
+        onTap: onSelected,
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: isSelected
+                  ? ModuleIcons.profileColor
+                  : (isDarkMode
+                      ? Colors.white.withValues(alpha: 0.1)
+                      : Colors.black.withValues(alpha: 0.1)),
+              width: isSelected ? 2 : 1,
+            ),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                icon,
+                size: 18,
+                color: isSelected
+                    ? ModuleIcons.profileColor
+                    : theme.textTheme.bodyMedium?.color,
+              ),
+              const SizedBox(width: 6),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                  color: isSelected
+                      ? ModuleIcons.profileColor
+                      : theme.textTheme.bodyMedium?.color,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

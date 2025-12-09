@@ -227,6 +227,14 @@ class GoalProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Invalida todos os dados (força recarregamento na próxima requisição)
+  void invalidate() {
+    print('GoalProvider - Invalidando dados...');
+    _goals = [];
+    _errorMessage = null;
+    notifyListeners();
+  }
+
   /// Converte dados do cache para entidades
   List<GoalEntity> _convertCachedToEntities(List<Map<String, dynamic>> cachedData) {
     return cachedData.map((data) {
@@ -248,9 +256,20 @@ class GoalProvider extends ChangeNotifier {
   /// Parse de tipo de objetivo
   ObjectiveType? _parseObjectiveType(String? typeString) {
     if (typeString == null) return null;
-    if (typeString.contains('limiteCategoria')) return ObjectiveType.limiteCategoria;
-    if (typeString.contains('metaEconomiaMes')) return ObjectiveType.metaEconomiaMes;
-    if (typeString.contains('metaInvestimento')) return ObjectiveType.metaInvestimento;
+
+    // Normalizar para maiúsculas para comparação
+    final normalized = typeString.toUpperCase();
+
+    if (normalized.contains('LIMITE') && normalized.contains('CATEGORIA')) {
+      return ObjectiveType.limiteCategoria;
+    }
+    if (normalized.contains('ECONOMIA') && normalized.contains('MES')) {
+      return ObjectiveType.metaEconomiaMes;
+    }
+    if (normalized.contains('INVESTIMENTO')) {
+      return ObjectiveType.metaInvestimento;
+    }
+
     return null;
   }
 }

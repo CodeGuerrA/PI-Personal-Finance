@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:sgfi/features/goals/domain/entities/goal_entity.dart';
 import 'package:sgfi/features/goals/presentation/providers/goal_provider.dart';
+import 'package:sgfi/features/categories/presentation/providers/category_provider.dart';
+import 'package:sgfi/core/utils/format_utils.dart';
 
 class GoalsScreen extends StatefulWidget {
   const GoalsScreen({super.key});
@@ -66,9 +68,10 @@ class _GoalsScreenState extends State<GoalsScreen> {
                 controller: controller,
                 decoration: const InputDecoration(
                   labelText: 'Valor a adicionar (R\$)',
-                  hintText: 'Ex: 50.00',
+                  hintText: 'Ex: 50.00 ou 50,00',
                 ),
                 keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                inputFormatters: [MoneyInputFormatter()],
                 autofocus: true,
               ),
             ],
@@ -80,8 +83,7 @@ class _GoalsScreenState extends State<GoalsScreen> {
             ),
             TextButton(
               onPressed: () {
-                final text = controller.text.replaceAll(',', '.');
-                final parsed = double.tryParse(text);
+                final parsed = FormatUtils.parseMoneyInput(controller.text);
                 if (parsed != null && parsed > 0) {
                   Navigator.of(ctx).pop(parsed);
                 }
@@ -361,10 +363,9 @@ class _GoalFormState extends State<_GoalForm> {
   double _currentAmount = 0;
   bool _isActive = true;
   bool _isSubmitting = false;
+  String _selectedType = 'META_ECONOMIA_MES';
 
-  String _onlyDigitsAndComma(String value) {
-    return value.replaceAll(RegExp(r'[^0-9,\.]'), '');
-  }
+  int? _selectedCategoryId;
 
   @override
   void initState() {
@@ -376,6 +377,10 @@ class _GoalFormState extends State<_GoalForm> {
       _currentAmount = g.currentAmount;
       _isActive = g.isActive;
     }
+    // Carregar categorias
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<CategoryProvider>().loadCategories();
+    });
   }
 
   Future<void> _submit() async {
@@ -399,12 +404,28 @@ class _GoalFormState extends State<_GoalForm> {
         valorAtual: _currentAmount,
       );
     } else {
+      // Validar se categoria é necessária
+      if (_selectedType == 'LIMITE_CATEGORIA' && _selectedCategoryId == null) {
+        setState(() {
+          _isSubmitting = false;
+        });
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Selecione uma categoria para limite de categoria'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+        return;
+      }
+
       success = await goalProvider.createGoal(
-        categoriaId: 1,
+        categoriaId: _selectedCategoryId ?? 1,
         descricao: _name,
         valorObjetivo: _targetAmount,
         mesAno: '${DateTime.now().year}-${DateTime.now().month.toString().padLeft(2, '0')}',
-        tipo: 'META_ECONOMIA_MES',
+        tipo: _selectedType,
       );
     }
 
@@ -459,22 +480,23 @@ class _GoalFormState extends State<_GoalForm> {
                 _targetAmount > 0 ? _targetAmount.toStringAsFixed(2) : '',
             decoration: const InputDecoration(
               labelText: 'Valor alvo (R\$)',
+              hintText: 'Ex: 1000.00 ou 1000,00',
             ),
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            inputFormatters: [MoneyInputFormatter()],
             validator: (value) {
-              final clean = _onlyDigitsAndComma(value ?? '');
-              if (clean.isEmpty) {
+              if (value == null || value.isEmpty) {
                 return 'Informe o valor alvo';
               }
-              final parsed = double.tryParse(clean.replaceAll(',', '.'));
+              final parsed = FormatUtils.parseMoneyInput(value);
               if (parsed == null || parsed <= 0) {
                 return 'Valor inválido';
               }
               return null;
             },
             onSaved: (value) {
-              final clean = _onlyDigitsAndComma(value ?? '');
-              _targetAmount = double.parse(clean.replaceAll(',', '.'));
+              final parsed = FormatUtils.parseMoneyInput(value ?? '');
+              _targetAmount = parsed ?? 0;
             },
           ),
           const SizedBox(height: 12),
@@ -483,29 +505,105 @@ class _GoalFormState extends State<_GoalForm> {
                 _currentAmount > 0 ? _currentAmount.toStringAsFixed(2) : '',
             decoration: const InputDecoration(
               labelText: 'Valor atual (R\$)',
+              hintText: 'Ex: 500.00 ou 500,00',
             ),
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            inputFormatters: [MoneyInputFormatter()],
             validator: (value) {
-              final clean = _onlyDigitsAndComma(value ?? '');
-              if (clean.isEmpty) {
+              if (value == null || value.isEmpty) {
                 return null;
               }
-              final parsed = double.tryParse(clean.replaceAll(',', '.'));
+              final parsed = FormatUtils.parseMoneyInput(value);
               if (parsed == null || parsed < 0) {
                 return 'Valor inválido';
               }
               return null;
             },
             onSaved: (value) {
-              final clean = _onlyDigitsAndComma(value ?? '');
-              if (clean.isEmpty) {
+              if (value == null || value.isEmpty) {
                 _currentAmount = 0;
               } else {
-                _currentAmount = double.parse(clean.replaceAll(',', '.'));
+                final parsed = FormatUtils.parseMoneyInput(value);
+                _currentAmount = parsed ?? 0;
               }
             },
           ),
           const SizedBox(height: 12),
+          DropdownButtonFormField<String>(
+            decoration: const InputDecoration(
+              labelText: 'Tipo de objetivo',
+            ),
+            value: _selectedType,
+            items: const [
+              DropdownMenuItem(
+                value: 'META_ECONOMIA_MES',
+                child: Text('Meta de Economia Mensal'),
+              ),
+              DropdownMenuItem(
+                value: 'META_INVESTIMENTO',
+                child: Text('Meta de Investimento'),
+              ),
+              DropdownMenuItem(
+                value: 'LIMITE_CATEGORIA',
+                child: Text('Limite de Categoria'),
+              ),
+            ],
+            onChanged: (value) {
+              if (value != null) {
+                setState(() {
+                  _selectedType = value;
+                  // Limpar categoria se não for LIMITE_CATEGORIA
+                  if (value != 'LIMITE_CATEGORIA') {
+                    _selectedCategoryId = null;
+                  }
+                });
+              }
+            },
+          ),
+          const SizedBox(height: 12),
+          if (_selectedType == 'LIMITE_CATEGORIA')
+            Consumer<CategoryProvider>(
+              builder: (context, categoryProvider, child) {
+                final categories = categoryProvider.expenseCategories;
+
+                if (categoryProvider.isLoading) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+
+                if (categories.isEmpty) {
+                  return const Text(
+                    'Nenhuma categoria de despesa disponível',
+                    style: TextStyle(color: Colors.red),
+                  );
+                }
+
+                return DropdownButtonFormField<int>(
+                  decoration: const InputDecoration(
+                    labelText: 'Categoria *',
+                  ),
+                  value: _selectedCategoryId,
+                  hint: const Text('Selecione uma categoria'),
+                  items: categories.map((cat) {
+                    return DropdownMenuItem<int>(
+                      value: int.parse(cat.id),
+                      child: Text(cat.name),
+                    );
+                  }).toList(),
+                  onChanged: (value) {
+                    setState(() {
+                      _selectedCategoryId = value;
+                    });
+                  },
+                  validator: (value) {
+                    if (_selectedType == 'LIMITE_CATEGORIA' && value == null) {
+                      return 'Selecione uma categoria';
+                    }
+                    return null;
+                  },
+                );
+              },
+            ),
+          if (_selectedType == 'LIMITE_CATEGORIA') const SizedBox(height: 12),
           SwitchListTile(
             title: const Text('Meta ativa'),
             value: _isActive,

@@ -220,6 +220,16 @@ class TransactionProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Invalida todos os dados (força recarregamento na próxima requisição)
+  void invalidate() {
+    print('TransactionProvider - Invalidando dados...');
+    _transactions = [];
+    _currentPage = 1;
+    _hasMore = true;
+    _errorMessage = null;
+    notifyListeners();
+  }
+
   /// Converte dados do cache para entidades
   List<TransactionEntity> _convertCachedToEntities(
       List<Map<String, dynamic>> cachedData) {

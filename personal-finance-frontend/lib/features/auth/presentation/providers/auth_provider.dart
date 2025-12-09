@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:sgfi/features/auth/domain/entities/user_entity.dart';
 import 'package:sgfi/features/auth/domain/repositories/auth_repository.dart';
 import 'package:sgfi/core/storage/token_storage.dart';
+import 'package:sgfi/core/cache/cache_service.dart';
 
 /// Provider para gerenciar estado de autenticação
 class AuthProvider extends ChangeNotifier {
@@ -34,6 +35,13 @@ class AuthProvider extends ChangeNotifier {
       final hasToken = await _tokenStorage.hasValidToken();
 
       if (hasToken) {
+        // Configurar o username no CacheService
+        final username = await _tokenStorage.getUsername();
+        if (username != null) {
+          CacheService.setCurrentUsername(username);
+          print('AuthProvider - Cache configurado para usuário existente: $username');
+        }
+
         // Carregar dados do usuário
         await loadCurrentUser();
       }
@@ -55,6 +63,17 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
+      // Verificar se é um usuário diferente e limpar cache se necessário
+      final lastUsername = await _tokenStorage.getUsername();
+      if (lastUsername != null && lastUsername != username) {
+        print('AuthProvider - Detectada mudança de usuário de $lastUsername para $username');
+        print('AuthProvider - Limpando cache de dados do usuário anterior...');
+
+        // Configurar o usuário anterior para limpar seu cache
+        CacheService.setCurrentUsername(lastUsername);
+        await CacheService.clearCurrentUserCache();
+      }
+
       final authTokens = await _repository.login(
         username: username,
         password: password,
@@ -69,6 +88,10 @@ class AuthProvider extends ChangeNotifier {
         username: username,
         requiresPasswordChange: authTokens.requiresPasswordChange,
       );
+
+      // Configurar o usuário atual no CacheService
+      CacheService.setCurrentUsername(username);
+      print('AuthProvider - Cache configurado para o usuário: $username');
 
       // Carregar dados do usuário após login
       await loadCurrentUser();
@@ -275,11 +298,14 @@ class AuthProvider extends ChangeNotifier {
 
   /// Faz logout
   Future<void> logout() async {
+    // Limpar cache de dados do usuário atual
+    await CacheService.clearCurrentUserCache();
+
+    // Limpar username do CacheService
+    CacheService.setCurrentUsername(null);
+
     // Limpar tokens
     await _tokenStorage.clearTokens();
-
-    // Limpar cache de dados
-    // await CacheService.clearAllCache(); // Descomentar quando integrar
 
     // Resetar estado
     _currentUser = null;

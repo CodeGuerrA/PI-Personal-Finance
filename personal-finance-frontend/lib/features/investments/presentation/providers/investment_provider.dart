@@ -262,6 +262,14 @@ class InvestmentProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Invalida todos os dados (força recarregamento na próxima requisição)
+  void invalidate() {
+    print('InvestmentProvider - Invalidando dados...');
+    _investments = [];
+    _errorMessage = null;
+    notifyListeners();
+  }
+
   /// Converte dados do cache para entidades
   List<InvestmentEntity> _convertCachedToEntities(List<Map<String, dynamic>> cachedData) {
     return cachedData.map((data) {

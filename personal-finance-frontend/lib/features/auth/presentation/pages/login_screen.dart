@@ -3,6 +3,9 @@ import 'package:provider/provider.dart';
 import 'package:sgfi/core/routes/app_routes.dart';
 import 'package:sgfi/core/validators/form_validators.dart';
 import 'package:sgfi/features/auth/presentation/providers/auth_provider.dart';
+import 'package:sgfi/core/services/provider_invalidation_service.dart';
+import 'package:sgfi/core/widgets/password_input.dart';
+import 'package:sgfi/core/widgets/custom_snackbar.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -17,7 +20,6 @@ class _LoginScreenState extends State<LoginScreen> {
   String _username = '';
   String _password = '';
   bool _isLoading = false;
-  String? _errorMessage;
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
@@ -25,7 +27,6 @@ class _LoginScreenState extends State<LoginScreen> {
     _formKey.currentState!.save();
     setState(() {
       _isLoading = true;
-      _errorMessage = null;
     });
 
     try {
@@ -41,6 +42,13 @@ class _LoginScreenState extends State<LoginScreen> {
         print('LoginScreen - Verificando requiresPasswordChange...');
         print('LoginScreen - authProvider.requiresPasswordChange = ${authProvider.requiresPasswordChange}');
 
+        // IMPORTANTE: Invalidar todos os providers para garantir que dados antigos não apareçam
+        print('LoginScreen - Invalidando todos os providers...');
+        await ProviderInvalidationService.invalidateAllProviders(context);
+        print('LoginScreen - Providers invalidados!');
+
+        if (!mounted) return;
+
         // Verificar se precisa trocar senha
         if (authProvider.requiresPasswordChange) {
           print('LoginScreen - Redirecionando para firstPassword');
@@ -53,16 +61,20 @@ class _LoginScreenState extends State<LoginScreen> {
           Navigator.of(context).pushReplacementNamed(AppRoutes.home);
         }
       } else {
-        setState(() {
-          _errorMessage = authProvider.errorMessage ??
-              'Erro ao fazer login. Verifique suas credenciais.';
-        });
+        // Show error using modern snackbar instead of inline text
+        if (!mounted) return;
+        CustomSnackbar.showError(
+          context,
+          message: authProvider.errorMessage ?? 'Usuário ou senha incorretos',
+        );
       }
     } catch (e) {
-      setState(() {
-        _errorMessage =
-            'Erro ao fazer login. Tente novamente mais tarde.\nDetalhe: $e';
-      });
+      if (mounted) {
+        CustomSnackbar.showError(
+          context,
+          message: 'Erro ao fazer login. Tente novamente mais tarde.',
+        );
+      }
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);
@@ -83,22 +95,13 @@ class _LoginScreenState extends State<LoginScreen> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   const Text(
-                    'Personal Finance',
+                    'FinTrack',
                     style: TextStyle(
                       fontSize: 28,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
                   const SizedBox(height: 24),
-
-                  if (_errorMessage != null) ...[
-                    Text(
-                      _errorMessage!,
-                      style: const TextStyle(color: Colors.red),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 16),
-                  ],
 
                   TextFormField(
                     decoration: const InputDecoration(
@@ -110,15 +113,14 @@ class _LoginScreenState extends State<LoginScreen> {
                     onSaved: (value) => _username = value!.trim(),
                   ),
                   const SizedBox(height: 16),
-                  TextFormField(
-                    decoration: const InputDecoration(
-                      labelText: 'Senha',
-                      prefixIcon: const Icon(Icons.lock_outline),
-                    ),
-                    obscureText: true,
+                  PasswordInput(
+                    labelText: 'Senha',
+                    prefixIcon: Icons.lock_outline,
                     validator: (value) =>
                         FormValidators.password(value, minLength: 6),
                     onSaved: (value) => _password = value!,
+                    textInputAction: TextInputAction.done,
+                    onFieldSubmitted: (_) => _submit(),
                   ),
                   const SizedBox(height: 24),
                   SizedBox(

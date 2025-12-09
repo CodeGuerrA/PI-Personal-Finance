@@ -7,6 +7,7 @@ import 'package:sgfi/features/recurrences/domain/entities/recurrence_entity.dart
 
 /// Serviço de cache local usando Hive
 /// Armazena dados para acesso offline e melhor performance
+/// Agora suporta cache separado por usuário
 class CacheService {
   static const String _transactionsBox = 'transactions';
   static const String _categoriesBox = 'categories';
@@ -14,6 +15,9 @@ class CacheService {
   static const String _investmentsBox = 'investments';
   static const String _recurrencesBox = 'recurrences';
   static const String _userDataBox = 'userData';
+
+  /// Usuário atual (username) para diferenciar cache
+  static String? _currentUsername;
 
   /// Inicializa o Hive e abre as boxes
   static Future<void> init() async {
@@ -29,6 +33,56 @@ class CacheService {
     await Hive.openBox(_investmentsBox);
     await Hive.openBox(_recurrencesBox);
     await Hive.openBox(_userDataBox);
+
+    // Limpar cache antigo (dados sem prefixo de usuário)
+    await _cleanOldCacheFormat();
+  }
+
+  /// Remove dados antigos do cache que não têm prefixo de usuário
+  /// Este método é necessário para migração de versões antigas
+  static Future<void> _cleanOldCacheFormat() async {
+    print('🧹 CacheService - Limpando cache antigo (dados sem prefixo de usuário)...');
+
+    final oldKeys = [
+      'all_transactions',
+      'last_sync',
+      'all_categories',
+      'last_sync_categories',
+      'all_goals',
+      'last_sync_goals',
+      'all_investments',
+      'last_sync_investments',
+      'all_recurrences',
+      'last_sync_recurrences',
+    ];
+
+    int deletedCount = 0;
+
+    // Limpar dos boxes
+    for (var key in oldKeys) {
+      if (transactionsBox.containsKey(key)) {
+        await transactionsBox.delete(key);
+        deletedCount++;
+      }
+      if (categoriesBox.containsKey(key)) {
+        await categoriesBox.delete(key);
+        deletedCount++;
+      }
+      if (goalsBox.containsKey(key)) {
+        await goalsBox.delete(key);
+        deletedCount++;
+      }
+      if (investmentsBox.containsKey(key)) {
+        await investmentsBox.delete(key);
+        deletedCount++;
+      }
+      if (recurrencesBox.containsKey(key)) {
+        await recurrencesBox.delete(key);
+        deletedCount++;
+      }
+    }
+
+    print('✅ CacheService - Limpeza concluída! $deletedCount chaves antigas removidas');
   }
 
   /// Box de transações
@@ -49,6 +103,25 @@ class CacheService {
   /// Box de dados do usuário
   static Box get userDataBox => Hive.box(_userDataBox);
 
+  /// Define o usuário atual para o cache
+  static void setCurrentUsername(String? username) {
+    print('🔐 CacheService - Configurando usuário: ${username ?? "null"}');
+    _currentUsername = username;
+  }
+
+  /// Obtém o usuário atual
+  static String? getCurrentUsername() {
+    return _currentUsername;
+  }
+
+  /// Gera chave de cache com prefixo do usuário
+  static String _getUserKey(String key) {
+    if (_currentUsername == null || _currentUsername!.isEmpty) {
+      return key;
+    }
+    return '${_currentUsername}_$key';
+  }
+
   // ========== TRANSAÇÕES ==========
 
   /// Salva lista de transações no cache
@@ -66,14 +139,19 @@ class CacheService {
       'categoriaId': t.categoriaId,
     }).toList();
 
-    await box.put('all_transactions', data);
-    await box.put('last_sync', DateTime.now().toIso8601String());
+    await box.put(_getUserKey('all_transactions'), data);
+    await box.put(_getUserKey('last_sync'), DateTime.now().toIso8601String());
   }
 
   /// Obtém transações do cache
   static List<Map<String, dynamic>>? getCachedTransactions() {
+    // Segurança: não retornar cache se não houver usuário configurado
+    if (_currentUsername == null || _currentUsername!.isEmpty) {
+      return null;
+    }
+
     final box = transactionsBox;
-    final data = box.get('all_transactions');
+    final data = box.get(_getUserKey('all_transactions'));
     if (data == null) return null;
     return List<Map<String, dynamic>>.from(data);
   }
@@ -81,7 +159,7 @@ class CacheService {
   /// Verifica se o cache de transações está atualizado (< 5 minutos)
   static bool isTransactionsCacheValid() {
     final box = transactionsBox;
-    final lastSync = box.get('last_sync');
+    final lastSync = box.get(_getUserKey('last_sync'));
     if (lastSync == null) return false;
 
     final lastSyncDate = DateTime.parse(lastSync);
@@ -111,14 +189,19 @@ class CacheService {
       'ativa': c.ativa,
     }).toList();
 
-    await box.put('all_categories', data);
-    await box.put('last_sync', DateTime.now().toIso8601String());
+    await box.put(_getUserKey('all_categories'), data);
+    await box.put(_getUserKey('last_sync_categories'), DateTime.now().toIso8601String());
   }
 
   /// Obtém categorias do cache
   static List<Map<String, dynamic>>? getCachedCategories() {
+    // Segurança: não retornar cache se não houver usuário configurado
+    if (_currentUsername == null || _currentUsername!.isEmpty) {
+      return null;
+    }
+
     final box = categoriesBox;
-    final data = box.get('all_categories');
+    final data = box.get(_getUserKey('all_categories'));
     if (data == null) return null;
     return List<Map<String, dynamic>>.from(data);
   }
@@ -126,7 +209,7 @@ class CacheService {
   /// Verifica se o cache de categorias está atualizado
   static bool isCategoriesCacheValid() {
     final box = categoriesBox;
-    final lastSync = box.get('last_sync');
+    final lastSync = box.get(_getUserKey('last_sync_categories'));
     if (lastSync == null) return false;
 
     final lastSyncDate = DateTime.parse(lastSync);
@@ -159,14 +242,19 @@ class CacheService {
       'statusAlerta': g.statusAlerta,
     }).toList();
 
-    await box.put('all_goals', data);
-    await box.put('last_sync', DateTime.now().toIso8601String());
+    await box.put(_getUserKey('all_goals'), data);
+    await box.put(_getUserKey('last_sync_goals'), DateTime.now().toIso8601String());
   }
 
   /// Obtém metas do cache
   static List<Map<String, dynamic>>? getCachedGoals() {
+    // Segurança: não retornar cache se não houver usuário configurado
+    if (_currentUsername == null || _currentUsername!.isEmpty) {
+      return null;
+    }
+
     final box = goalsBox;
-    final data = box.get('all_goals');
+    final data = box.get(_getUserKey('all_goals'));
     if (data == null) return null;
     return List<Map<String, dynamic>>.from(data);
   }
@@ -174,7 +262,7 @@ class CacheService {
   /// Verifica se o cache de metas está atualizado
   static bool isGoalsCacheValid() {
     final box = goalsBox;
-    final lastSync = box.get('last_sync');
+    final lastSync = box.get(_getUserKey('last_sync_goals'));
     if (lastSync == null) return false;
 
     final lastSyncDate = DateTime.parse(lastSync);
@@ -210,14 +298,19 @@ class CacheService {
       'profitPercent': i.profitPercent,
     }).toList();
 
-    await box.put('all_investments', data);
-    await box.put('last_sync', DateTime.now().toIso8601String());
+    await box.put(_getUserKey('all_investments'), data);
+    await box.put(_getUserKey('last_sync_investments'), DateTime.now().toIso8601String());
   }
 
   /// Obtém investimentos do cache
   static List<Map<String, dynamic>>? getCachedInvestments() {
+    // Segurança: não retornar cache se não houver usuário configurado
+    if (_currentUsername == null || _currentUsername!.isEmpty) {
+      return null;
+    }
+
     final box = investmentsBox;
-    final data = box.get('all_investments');
+    final data = box.get(_getUserKey('all_investments'));
     if (data == null) return null;
     return List<Map<String, dynamic>>.from(data);
   }
@@ -225,7 +318,7 @@ class CacheService {
   /// Verifica se o cache de investimentos está atualizado
   static bool isInvestmentsCacheValid() {
     final box = investmentsBox;
-    final lastSync = box.get('last_sync');
+    final lastSync = box.get(_getUserKey('last_sync_investments'));
     if (lastSync == null) return false;
 
     final lastSyncDate = DateTime.parse(lastSync);
@@ -260,14 +353,19 @@ class CacheService {
       'observacoes': r.observacoes,
     }).toList();
 
-    await box.put('all_recurrences', data);
-    await box.put('last_sync', DateTime.now().toIso8601String());
+    await box.put(_getUserKey('all_recurrences'), data);
+    await box.put(_getUserKey('last_sync_recurrences'), DateTime.now().toIso8601String());
   }
 
   /// Obtém recorrências do cache
   static List<Map<String, dynamic>>? getCachedRecurrences() {
+    // Segurança: não retornar cache se não houver usuário configurado
+    if (_currentUsername == null || _currentUsername!.isEmpty) {
+      return null;
+    }
+
     final box = recurrencesBox;
-    final data = box.get('all_recurrences');
+    final data = box.get(_getUserKey('all_recurrences'));
     if (data == null) return null;
     return List<Map<String, dynamic>>.from(data);
   }
@@ -275,7 +373,7 @@ class CacheService {
   /// Verifica se o cache de recorrências está atualizado
   static bool isRecurrencesCacheValid() {
     final box = recurrencesBox;
-    final lastSync = box.get('last_sync');
+    final lastSync = box.get(_getUserKey('last_sync_recurrences'));
     if (lastSync == null) return false;
 
     final lastSyncDate = DateTime.parse(lastSync);
@@ -292,13 +390,51 @@ class CacheService {
 
   // ========== GERAL ==========
 
-  /// Limpa todo o cache
+  /// Limpa apenas o cache do usuário atual (mantém dados de outros usuários)
+  static Future<void> clearCurrentUserCache() async {
+    if (_currentUsername == null || _currentUsername!.isEmpty) {
+      print('⚠️  CacheService - Nenhum usuário configurado, limpando todo o cache');
+      // Se não há usuário definido, limpar tudo para segurança
+      await clearAllCache();
+      return;
+    }
+
+    print('🗑️  CacheService - Limpando cache do usuário: $_currentUsername');
+
+    // Limpar apenas as chaves do usuário atual
+    final userPrefix = '${_currentUsername}_';
+
+    await _clearUserKeysFromBox(transactionsBox, userPrefix);
+    await _clearUserKeysFromBox(categoriesBox, userPrefix);
+    await _clearUserKeysFromBox(goalsBox, userPrefix);
+    await _clearUserKeysFromBox(investmentsBox, userPrefix);
+    await _clearUserKeysFromBox(recurrencesBox, userPrefix);
+
+    print('✅ CacheService - Cache do usuário $_currentUsername limpo');
+  }
+
+  /// Limpa chaves específicas de um box baseado no prefixo do usuário
+  static Future<void> _clearUserKeysFromBox(Box box, String userPrefix) async {
+    final keysToDelete = <dynamic>[];
+
+    for (var key in box.keys) {
+      if (key.toString().startsWith(userPrefix)) {
+        keysToDelete.add(key);
+      }
+    }
+
+    for (var key in keysToDelete) {
+      await box.delete(key);
+    }
+  }
+
+  /// Limpa todo o cache (todos os usuários)
   static Future<void> clearAllCache() async {
-    await clearTransactionsCache();
-    await clearCategoriesCache();
-    await clearGoalsCache();
-    await clearInvestmentsCache();
-    await clearRecurrencesCache();
+    await transactionsBox.clear();
+    await categoriesBox.clear();
+    await goalsBox.clear();
+    await investmentsBox.clear();
+    await recurrencesBox.clear();
     await userDataBox.clear();
   }
 

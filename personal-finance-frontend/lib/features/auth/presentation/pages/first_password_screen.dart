@@ -3,6 +3,8 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:sgfi/core/routes/app_routes.dart';
 import 'package:sgfi/core/validators/form_validators.dart';
+import 'package:sgfi/core/widgets/password_input.dart';
+import 'package:sgfi/core/widgets/custom_snackbar.dart';
 
 class FirstPasswordScreen extends StatefulWidget {
   const FirstPasswordScreen({super.key});
@@ -20,15 +22,13 @@ class _FirstPasswordScreenState extends State<FirstPasswordScreen> {
   String _confirmPassword = '';
 
   bool _isSubmitting = false;
-  String? _errorMessage;
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
 
     if (_newPassword != _confirmPassword) {
-      setState(() {
-        _errorMessage = 'As senhas não conferem.';
-      });
+      if (!mounted) return;
+      CustomSnackbar.showError(context, message: 'As senhas não conferem.');
       return;
     }
 
@@ -36,7 +36,6 @@ class _FirstPasswordScreenState extends State<FirstPasswordScreen> {
 
     setState(() {
       _isSubmitting = true;
-      _errorMessage = null;
     });
 
     try {
@@ -54,24 +53,28 @@ class _FirstPasswordScreenState extends State<FirstPasswordScreen> {
       if (!mounted) return;
 
       if (response.statusCode == 200) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Senha definida com sucesso! Faça login com sua nova senha.'),
-            backgroundColor: Colors.green,
-          ),
+        CustomSnackbar.showSuccess(
+          context,
+          message: 'Senha definida com sucesso! Faça login com sua nova senha.',
         );
 
-        // Redirecionar para tela de login
+        // Redirecionar para tela de login após pequeno delay
+        await Future.delayed(const Duration(seconds: 2));
+        if (!mounted) return;
         Navigator.of(context).pushReplacementNamed(AppRoutes.login);
       } else {
-        setState(() {
-          _errorMessage = 'Erro: ${response.body}';
-        });
+        if (!mounted) return;
+        CustomSnackbar.showError(
+          context,
+          message: 'Erro ao definir senha. Verifique os dados e tente novamente.',
+        );
       }
     } catch (e) {
-      setState(() {
-        _errorMessage = 'Erro ao definir senha: $e';
-      });
+      if (!mounted) return;
+      CustomSnackbar.showError(
+        context,
+        message: 'Erro ao definir senha. Tente novamente mais tarde.',
+      );
     } finally {
       if (mounted) {
         setState(() => _isSubmitting = false);
@@ -118,14 +121,6 @@ class _FirstPasswordScreenState extends State<FirstPasswordScreen> {
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 24),
-                  if (_errorMessage != null) ...[
-                    Text(
-                      _errorMessage!,
-                      style: const TextStyle(color: Colors.red),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 16),
-                  ],
                   TextFormField(
                     decoration: const InputDecoration(
                       labelText: 'Usuário',
@@ -136,39 +131,34 @@ class _FirstPasswordScreenState extends State<FirstPasswordScreen> {
                     onSaved: (value) => _username = value!.trim(),
                   ),
                   const SizedBox(height: 16),
-                  TextFormField(
-                    decoration: const InputDecoration(
-                      labelText: 'Senha Temporária',
-                      prefixIcon: Icon(Icons.lock_clock),
-                    ),
-                    obscureText: true,
+                  PasswordInput(
+                    labelText: 'Senha Temporária',
+                    prefixIcon: Icons.lock_clock,
                     validator: (value) =>
                         FormValidators.password(value, minLength: 6),
                     onSaved: (value) => _temporaryPassword = value!,
+                    helperText: 'Use a senha temporária recebida',
                   ),
                   const SizedBox(height: 16),
-                  TextFormField(
-                    decoration: const InputDecoration(
-                      labelText: 'Nova Senha',
-                      prefixIcon: Icon(Icons.lock_reset),
-                    ),
-                    obscureText: true,
+                  PasswordInput(
+                    labelText: 'Nova Senha',
+                    prefixIcon: Icons.lock_reset,
                     validator: (value) =>
                         FormValidators.password(value, minLength: 8),
                     onChanged: (value) => _newPassword = value,
                     onSaved: (value) => _newPassword = value!,
+                    helperText: 'Mínimo de 8 caracteres',
                   ),
                   const SizedBox(height: 16),
-                  TextFormField(
-                    decoration: const InputDecoration(
-                      labelText: 'Confirmar Nova Senha',
-                      prefixIcon: Icon(Icons.lock_outline),
-                    ),
-                    obscureText: true,
+                  PasswordInput(
+                    labelText: 'Confirmar Nova Senha',
+                    prefixIcon: Icons.lock_outline,
                     validator: (value) =>
                         FormValidators.password(value, minLength: 8),
                     onChanged: (value) => _confirmPassword = value,
                     onSaved: (value) => _confirmPassword = value!,
+                    textInputAction: TextInputAction.done,
+                    onFieldSubmitted: (_) => _submit(),
                   ),
                   const SizedBox(height: 24),
                   SizedBox(

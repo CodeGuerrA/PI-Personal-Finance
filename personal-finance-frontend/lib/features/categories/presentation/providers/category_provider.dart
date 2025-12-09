@@ -185,6 +185,14 @@ class CategoryProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Invalida todos os dados (força recarregamento na próxima requisição)
+  void invalidate() {
+    print('CategoryProvider - Invalidando dados...');
+    _categories = [];
+    _errorMessage = null;
+    notifyListeners();
+  }
+
   /// Converte dados do cache para entidades
   List<CategoryEntity> _convertCachedToEntities(
       List<Map<String, dynamic>> cachedData) {

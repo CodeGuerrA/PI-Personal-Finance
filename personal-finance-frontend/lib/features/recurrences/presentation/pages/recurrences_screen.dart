@@ -5,6 +5,7 @@ import 'package:sgfi/features/recurrences/presentation/providers/recurrence_prov
 import 'package:sgfi/features/transactions/domain/entities/transaction_entity.dart';
 import 'package:sgfi/features/categories/domain/entities/category_entity.dart';
 import 'package:sgfi/features/categories/presentation/providers/category_provider.dart';
+import 'package:sgfi/core/utils/format_utils.dart';
 
 class RecurrencesScreen extends StatefulWidget {
   const RecurrencesScreen({super.key});
@@ -266,9 +267,6 @@ class _RecurrenceFormState extends State<_RecurrenceForm> {
   bool _isActive = true;
   bool _isSubmitting = false;
 
-  String _onlyDigitsAndComma(String value) {
-    return value.replaceAll(RegExp(r'[^0-9,\.]'), '');
-  }
 
   @override
   void initState() {
@@ -513,25 +511,24 @@ class _RecurrenceFormState extends State<_RecurrenceForm> {
                 _amount > 0 ? _amount.toStringAsFixed(2) : '',
             decoration: const InputDecoration(
               labelText: 'Valor (R\$)',
+              hintText: 'Ex: 1.500,00 ou 1500',
             ),
             keyboardType:
                 const TextInputType.numberWithOptions(decimal: true),
+            inputFormatters: [MoneyInputFormatter()],
             validator: (value) {
-              final clean = _onlyDigitsAndComma(value ?? '');
-              if (clean.isEmpty) {
+              if (value == null || value.isEmpty) {
                 return 'Informe o valor';
               }
-              final parsed =
-                  double.tryParse(clean.replaceAll(',', '.'));
+              final parsed = FormatUtils.parseMoneyInput(value);
               if (parsed == null || parsed <= 0) {
                 return 'Valor inválido';
               }
               return null;
             },
             onSaved: (value) {
-              final clean = _onlyDigitsAndComma(value ?? '');
-              _amount =
-                  double.parse(clean.replaceAll(',', '.'));
+              final parsed = FormatUtils.parseMoneyInput(value ?? '');
+              _amount = parsed ?? 0;
             },
           ),
           const SizedBox(height: 12),

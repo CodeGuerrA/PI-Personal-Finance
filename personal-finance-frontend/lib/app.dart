@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'core/routes/app_routes.dart';
 import 'core/theme/app_theme.dart';
 import 'core/storage/token_storage.dart';
+import 'core/providers/theme_provider.dart';
 
 // Transaction
 import 'features/transactions/presentation/providers/transaction_provider.dart';
@@ -46,7 +47,12 @@ class SgfiApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        // 🔐 Auth Provider (primeiro para verificar autenticação)
+        // 🎨 Theme Provider (primeiro para carregar preferências)
+        ChangeNotifierProvider(
+          create: (_) => ThemeProvider()..initialize(),
+        ),
+
+        // 🔐 Auth Provider (segundo para verificar autenticação)
         ChangeNotifierProvider(
           create: (_) => AuthProvider(
             AuthRepositoryImpl(
@@ -110,12 +116,18 @@ class SgfiApp extends StatelessWidget {
           ),
         ),
       ],
-      child: MaterialApp(
-        title: 'SGFI',
-        debugShowCheckedModeBanner: false,
-        theme: AppTheme.lightTheme,
-        initialRoute: AppRoutes.splash,
-        onGenerateRoute: AppRoutes.generateRoute,
+      child: Consumer<ThemeProvider>(
+        builder: (context, themeProvider, _) {
+          return MaterialApp(
+            title: 'SGFI',
+            debugShowCheckedModeBanner: false,
+            theme: AppTheme.lightTheme,
+            darkTheme: AppTheme.darkTheme,
+            themeMode: themeProvider.effectiveThemeMode,
+            initialRoute: AppRoutes.splash,
+            onGenerateRoute: AppRoutes.generateRoute,
+          );
+        },
       ),
     );
   }

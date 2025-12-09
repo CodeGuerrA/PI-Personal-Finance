@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:sgfi/features/auth/presentation/providers/auth_provider.dart';
+import 'package:sgfi/core/widgets/password_input.dart';
+import 'package:sgfi/core/widgets/custom_snackbar.dart';
 
 class ChangePasswordScreen extends StatefulWidget {
   const ChangePasswordScreen({super.key});
@@ -17,9 +19,6 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
   String _confirmPassword = '';
 
   bool _isSubmitting = false;
-  bool _obscureCurrent = true;
-  bool _obscureNew = true;
-  bool _obscureConfirm = true;
 
   String? _validatePassword(String? value) {
     if (value == null || value.isEmpty) {
@@ -35,10 +34,9 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
     if (!_formKey.currentState!.validate()) return;
 
     if (_newPassword != _confirmPassword) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('A confirmação da nova senha não confere.'),
-        ),
+      CustomSnackbar.showError(
+        context,
+        message: 'A confirmação da nova senha não confere.',
       );
       return;
     }
@@ -58,30 +56,26 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
       if (!mounted) return;
 
       if (success) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Senha alterada com sucesso!'),
-            backgroundColor: Colors.green,
-          ),
+        CustomSnackbar.showSuccess(
+          context,
+          message: 'Senha alterada com sucesso!',
         );
 
+        await Future.delayed(const Duration(seconds: 1));
+        if (!mounted) return;
         Navigator.of(context).pop();
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(authProvider.errorMessage ??
-                'Erro ao alterar senha. Verifique a senha atual.'),
-            backgroundColor: Colors.red,
-          ),
+        CustomSnackbar.showError(
+          context,
+          message: authProvider.errorMessage ??
+              'Erro ao alterar senha. Verifique a senha atual.',
         );
       }
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Erro ao alterar senha: ${e.toString()}'),
-          backgroundColor: Colors.red,
-        ),
+      CustomSnackbar.showError(
+        context,
+        message: 'Erro ao alterar senha. Tente novamente.',
       );
     } finally {
       if (mounted) {
@@ -128,72 +122,34 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                   key: _formKey,
                   child: Column(
                     children: [
-                      TextFormField(
-                        obscureText: _obscureCurrent,
-                        decoration: InputDecoration(
-                          labelText: 'Senha atual',
-                          suffixIcon: IconButton(
-                            icon: Icon(
-                              _obscureCurrent
-                                  ? Icons.visibility_off
-                                  : Icons.visibility,
-                            ),
-                            onPressed: () {
-                              setState(() {
-                                _obscureCurrent = !_obscureCurrent;
-                              });
-                            },
-                          ),
-                        ),
+                      PasswordInput(
+                        labelText: 'Senha atual',
+                        prefixIcon: Icons.lock_outline,
                         validator: _validatePassword,
                         onSaved: (value) =>
                             _currentPassword = (value ?? '').trim(),
+                        helperText: 'Digite sua senha atual',
                       ),
                       const SizedBox(height: 12),
-                      TextFormField(
-                        obscureText: _obscureNew,
-                        decoration: InputDecoration(
-                          labelText: 'Nova senha',
-                          suffixIcon: IconButton(
-                            icon: Icon(
-                              _obscureNew
-                                  ? Icons.visibility_off
-                                  : Icons.visibility,
-                            ),
-                            onPressed: () {
-                              setState(() {
-                                _obscureNew = !_obscureNew;
-                              });
-                            },
-                          ),
-                        ),
+                      PasswordInput(
+                        labelText: 'Nova senha',
+                        prefixIcon: Icons.lock_reset,
                         validator: _validatePassword,
                         onChanged: (value) => _newPassword = value,
                         onSaved: (value) =>
                             _newPassword = (value ?? '').trim(),
+                        helperText: 'Mínimo de 6 caracteres',
                       ),
                       const SizedBox(height: 12),
-                      TextFormField(
-                        obscureText: _obscureConfirm,
-                        decoration: InputDecoration(
-                          labelText: 'Confirmar nova senha',
-                          suffixIcon: IconButton(
-                            icon: Icon(
-                              _obscureConfirm
-                                  ? Icons.visibility_off
-                                  : Icons.visibility,
-                            ),
-                            onPressed: () {
-                              setState(() {
-                                _obscureConfirm = !_obscureConfirm;
-                              });
-                            },
-                          ),
-                        ),
+                      PasswordInput(
+                        labelText: 'Confirmar nova senha',
+                        prefixIcon: Icons.lock_outline,
                         validator: _validatePassword,
                         onChanged: (value) => _confirmPassword = value,
                         onSaved: (value) =>
                             _confirmPassword = (value ?? '').trim(),
+                        textInputAction: TextInputAction.done,
+                        onFieldSubmitted: (_) => _submit(),
                       ),
                       const SizedBox(height: 24),
                       SizedBox(

@@ -53,10 +53,7 @@ public class ObjectiveCreator {
         // 2. Validações usando Domain Services (SRP)
         validateObjective(dto);
 
-        // 3. Verificar duplicidade
-        validateUniqueness(user.getId(), dto);
-
-        // 4. Criar entidade de domínio
+        // 3. Criar entidade de domínio (removida validação de unicidade para permitir múltiplas metas do mesmo tipo)
         Objective objective = Objective.create(
                 user,
                 dto.getCategoriaId(),
@@ -109,13 +106,4 @@ public class ObjectiveCreator {
         }
     }
 
-    private void validateUniqueness(Long userId, ObjectiveCreateRequestDTO dto) {
-        if (dto.getCategoriaId() != null) {
-            objectiveRepository.findByUsuarioIdAndCategoriaIdAndMesAnoAndTipoAndAtivaTrue(
-                    userId, dto.getCategoriaId(), dto.getMesAno(), dto.getTipo()
-            ).ifPresent(obj -> {
-                throw new IllegalArgumentException("Já existe um objetivo ativo para esta categoria/mês/tipo");
-            });
-        }
-    }
 }

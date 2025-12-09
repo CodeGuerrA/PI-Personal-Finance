@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:sgfi/features/investments/domain/entities/investment_entity.dart';
 import 'package:sgfi/features/investments/presentation/providers/investment_provider.dart';
+import 'package:sgfi/core/utils/format_utils.dart';
 
 class InvestmentsScreen extends StatefulWidget {
   const InvestmentsScreen({super.key});
@@ -480,15 +481,6 @@ class _InvestmentFormState extends State<_InvestmentForm> {
     }
   }
 
-  String _onlyDigitsAndComma(String value) {
-    return value.replaceAll(RegExp(r'[^0-9,\.]'), '');
-  }
-
-  double _parseCurrency(String? value) {
-    final clean = _onlyDigitsAndComma(value ?? '');
-    if (clean.isEmpty) return 0;
-    return double.parse(clean.replaceAll(',', '.'));
-  }
 
   String _serializeInvestmentType(InvestmentType type) {
     switch (type) {
@@ -666,22 +658,24 @@ class _InvestmentFormState extends State<_InvestmentForm> {
               initialValue: _quantity > 0 ? _quantity.toStringAsFixed(2) : '',
               decoration: const InputDecoration(
                 labelText: 'Quantidade',
+                hintText: 'Ex: 100 ou 100,50',
               ),
               keyboardType:
                   const TextInputType.numberWithOptions(decimal: true),
+              inputFormatters: [MoneyInputFormatter()],
               validator: (value) {
-                final clean = _onlyDigitsAndComma(value ?? '');
-                if (clean.isEmpty) {
+                if (value == null || value.isEmpty) {
                   return 'Informe a quantidade';
                 }
-                final parsed = double.tryParse(clean.replaceAll(',', '.'));
+                final parsed = FormatUtils.parseMoneyInput(value);
                 if (parsed == null || parsed <= 0) {
                   return 'Quantidade inválida';
                 }
                 return null;
               },
               onSaved: (value) {
-                _quantity = _parseCurrency(value);
+                final parsed = FormatUtils.parseMoneyInput(value ?? '');
+                _quantity = parsed ?? 0;
               },
             ),
             const SizedBox(height: 12),
@@ -689,22 +683,24 @@ class _InvestmentFormState extends State<_InvestmentForm> {
               initialValue: _buyPrice > 0 ? _buyPrice.toStringAsFixed(2) : '',
               decoration: const InputDecoration(
                 labelText: 'Preço de compra (R\$)',
+                hintText: 'Ex: 1.000,00 ou 1000',
               ),
               keyboardType:
                   const TextInputType.numberWithOptions(decimal: true),
+              inputFormatters: [MoneyInputFormatter()],
               validator: (value) {
-                final clean = _onlyDigitsAndComma(value ?? '');
-                if (clean.isEmpty) {
+                if (value == null || value.isEmpty) {
                   return 'Informe o preço de compra';
                 }
-                final parsed = double.tryParse(clean.replaceAll(',', '.'));
+                final parsed = FormatUtils.parseMoneyInput(value);
                 if (parsed == null || parsed <= 0) {
                   return 'Preço inválido';
                 }
                 return null;
               },
               onSaved: (value) {
-                _buyPrice = _parseCurrency(value);
+                final parsed = FormatUtils.parseMoneyInput(value ?? '');
+                _buyPrice = parsed ?? 0;
               },
             ),
             const SizedBox(height: 12),
@@ -713,15 +709,17 @@ class _InvestmentFormState extends State<_InvestmentForm> {
                   _currentPrice != null ? _currentPrice!.toStringAsFixed(2) : '',
               decoration: const InputDecoration(
                 labelText: 'Preço atual (R\$) - opcional',
+                hintText: 'Ex: 1.200,00 ou 1200',
               ),
               keyboardType:
                   const TextInputType.numberWithOptions(decimal: true),
+              inputFormatters: [MoneyInputFormatter()],
               onSaved: (value) {
-                final clean = _onlyDigitsAndComma(value ?? '');
-                if (clean.isEmpty) {
+                if (value == null || value.isEmpty) {
                   _currentPrice = null;
                 } else {
-                  _currentPrice = _parseCurrency(value);
+                  final parsed = FormatUtils.parseMoneyInput(value);
+                  _currentPrice = parsed;
                 }
               },
             ),

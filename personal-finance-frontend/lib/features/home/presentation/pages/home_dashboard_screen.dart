@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:sgfi/core/routes/app_routes.dart';
+import 'package:sgfi/core/theme/module_icons.dart';
 import 'package:sgfi/features/transactions/domain/entities/transaction_entity.dart';
 import 'package:sgfi/features/transactions/domain/repositories/transaction_repository.dart';
 import 'package:sgfi/features/transactions/data/repositories/transaction_repository_impl.dart';
@@ -255,8 +256,13 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
                   child: _SummaryCard(
                     title: 'Saldo do mês',
                     value: _formatCurrency(_balance),
-                    highlightColor:
-                        isNegativeBalance ? Colors.red : Colors.green,
+                    highlightColor: isNegativeBalance
+                        ? Theme.of(context).brightness == Brightness.dark
+                            ? const Color(0xFFFF8096)
+                            : Colors.red
+                        : Theme.of(context).brightness == Brightness.dark
+                            ? const Color(0xFF48D8AA)
+                            : Colors.green,
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -264,7 +270,10 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
                   child: _SummaryCard(
                     title: 'Receitas do mês',
                     value: _formatCurrency(_totalIncomeMonth),
-                    highlightColor: Colors.green,
+                    highlightColor:
+                        Theme.of(context).brightness == Brightness.dark
+                            ? const Color(0xFF48D8AA)
+                            : Colors.green,
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -272,7 +281,10 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
                   child: _SummaryCard(
                     title: 'Despesas do mês',
                     value: _formatCurrency(_totalExpensesMonth),
-                    highlightColor: Colors.red,
+                    highlightColor:
+                        Theme.of(context).brightness == Brightness.dark
+                            ? const Color(0xFFFF8096)
+                            : Colors.red,
                   ),
                 ),
               ],
@@ -332,7 +344,10 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
                     final r = upcomingRecurrences[index];
 
                     final isIncome = r.type == TransactionType.income;
-                    final color = isIncome ? Colors.green : Colors.red;
+                    final isDark = Theme.of(context).brightness == Brightness.dark;
+                    final color = isIncome
+                        ? (isDark ? const Color(0xFF48D8AA) : Colors.green)
+                        : (isDark ? const Color(0xFFFF8096) : Colors.red);
                     final sign = isIncome ? '+' : '-';
                     final nextDate = r.nextDueDate;
 
@@ -384,8 +399,10 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
                         final t = _recentTransactions[index];
                         final isIncome =
                             t.type == TransactionType.income;
-                        final color =
-                            isIncome ? Colors.green : Colors.red;
+                        final isDark = Theme.of(context).brightness == Brightness.dark;
+                        final color = isIncome
+                            ? (isDark ? const Color(0xFF48D8AA) : Colors.green)
+                            : (isDark ? const Color(0xFFFF8096) : Colors.red);
                         final sign = isIncome ? '+' : '-';
 
                         return ListTile(
@@ -419,21 +436,30 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
         onTap: _onTabTapped,
-        items: const [
+        type: BottomNavigationBarType.fixed,
+        backgroundColor: Theme.of(context).colorScheme.surface,
+        selectedLabelStyle: TextStyle(
+          color: Theme.of(context).colorScheme.onSurface,
+          fontWeight: FontWeight.w600,
+        ),
+        unselectedLabelStyle: TextStyle(
+          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+        ),
+        items: [
           BottomNavigationBarItem(
-            icon: Icon(Icons.home_outlined),
+            icon: Icon(Icons.home_outlined, color: _currentIndex == 0 ? Colors.blue : Colors.blue.withValues(alpha: 0.6)),
             label: 'Início',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.swap_vert),
+            icon: Icon(Icons.swap_vert, color: _currentIndex == 1 ? Colors.green : Colors.green.withValues(alpha: 0.6)),
             label: 'Transações',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.savings_outlined),
+            icon: Icon(Icons.savings_outlined, color: _currentIndex == 2 ? Colors.amber : Colors.amber.withValues(alpha: 0.6)),
             label: 'Investimentos',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.flag_outlined),
+            icon: Icon(Icons.flag_outlined, color: _currentIndex == 3 ? Colors.orange : Colors.orange.withValues(alpha: 0.6)),
             label: 'Metas',
           ),
         ],
@@ -455,6 +481,7 @@ class _SummaryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(12.0),
@@ -463,7 +490,12 @@ class _SummaryCard extends StatelessWidget {
           children: [
             Text(
               title,
-              style: const TextStyle(fontSize: 12, color: Colors.grey),
+              style: TextStyle(
+                fontSize: 12,
+                color: isDark
+                    ? const Color(0xFF9CA3AF)
+                    : Colors.grey,
+              ),
             ),
             const SizedBox(height: 4),
             Text(

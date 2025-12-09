@@ -5,6 +5,7 @@ import 'package:sgfi/features/transactions/presentation/providers/transaction_pr
 import 'package:sgfi/features/categories/domain/entities/category_entity.dart';
 import 'package:sgfi/features/categories/presentation/providers/category_provider.dart';
 import 'package:sgfi/core/routes/app_routes.dart';
+import 'package:sgfi/core/utils/format_utils.dart';
 
 class TransactionsListScreen extends StatefulWidget {
   const TransactionsListScreen({super.key});
@@ -516,9 +517,6 @@ class _AddTransactionFormState extends State<_AddTransactionForm> {
     }
   }
 
-  String _onlyDigitsAndComma(String value) {
-    return value.replaceAll(RegExp(r'[^0-9,\.]'), '');
-  }
 
   List<CategoryEntity> get _availableCategories {
     // categorias compatíveis com o tipo selecionado
@@ -726,25 +724,24 @@ class _AddTransactionFormState extends State<_AddTransactionForm> {
                 _amount > 0 ? _amount.toStringAsFixed(2) : '',
             decoration: const InputDecoration(
               labelText: 'Valor (R\$)',
+              hintText: 'Ex: 1.500,00 ou 1500',
             ),
             keyboardType:
                 const TextInputType.numberWithOptions(decimal: true),
+            inputFormatters: [MoneyInputFormatter()],
             validator: (value) {
-              final clean = _onlyDigitsAndComma(value ?? '');
-              if (clean.isEmpty) {
+              if (value == null || value.isEmpty) {
                 return 'Informe o valor';
               }
-              final parsed =
-                  double.tryParse(clean.replaceAll(',', '.'));
+              final parsed = FormatUtils.parseMoneyInput(value);
               if (parsed == null || parsed <= 0) {
                 return 'Valor inválido';
               }
               return null;
             },
             onSaved: (value) {
-              final clean = _onlyDigitsAndComma(value ?? '');
-              _amount =
-                  double.parse(clean.replaceAll(',', '.'));
+              final parsed = FormatUtils.parseMoneyInput(value ?? '');
+              _amount = parsed ?? 0;
             },
           ),
           const SizedBox(height: 12),
